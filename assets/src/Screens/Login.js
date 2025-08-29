@@ -7,20 +7,53 @@ import {
   Platform,
   ScrollView,
   KeyboardAvoidingView,
-  TouchableOpacity
+  TouchableOpacity,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
-import styles from '../Styles/Login.styles';
+import styles from "../Styles/Login.styles";
 
 export default function Login({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  return (
+  const attemptLogin = async () => {
+    try {
+      const response = await fetch(
+        "http://192.168.254.105/safelink-backend/login.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
 
-	// Gradient Background
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.message == "success") {
+        navigation.navigate("Home");
+      }
+      console.log("Fetched data:", data);
+
+      return data;
+    } catch (error) {
+      console.error("Fetch failed:", error.message);
+      return null;
+    }
+  };
+
+  return (
+    // Gradient Background
     <LinearGradient
       colors={["#eb4b3f", "#f0945b"]}
       start={{ x: 0, y: 0 }}
@@ -29,10 +62,11 @@ export default function Login({ navigation }) {
     >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
-
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+        >
           {/* Logo tapos yung Bilog */}
           <View style={styles.logoWrap}>
             <LinearGradient
@@ -42,7 +76,7 @@ export default function Login({ navigation }) {
               style={styles.logoCircle}
             >
               <Image
-                source={require('../Images/SafeLink_LOGO.png')}
+                source={require("../Images/SafeLink_LOGO.png")}
                 style={styles.logo}
                 resizeMode="contain"
               />
@@ -54,7 +88,6 @@ export default function Login({ navigation }) {
 
           {/* Text FIelds */}
           <View style={styles.form}>
-
             {/* Start ng Email */}
             <View style={styles.inputWrapper}>
               <MaterialIcons
@@ -64,7 +97,7 @@ export default function Login({ navigation }) {
                 style={styles.inputIcon}
               />
               <TextInput
-                style={[styles.input, { color: '#fff' }]}
+                style={[styles.input, { color: "#fff" }]}
                 placeholder="Email Address"
                 placeholderTextColor="#fff"
                 value={email}
@@ -72,9 +105,9 @@ export default function Login({ navigation }) {
                 keyboardType="email-address"
               />
             </View>
-			{/* End ng Email */}
+            {/* End ng Email */}
 
-			{/* Start ng Password */}
+            {/* Start ng Password */}
             <View style={styles.inputWrapper}>
               <Ionicons
                 name="lock-closed-outline"
@@ -83,7 +116,7 @@ export default function Login({ navigation }) {
                 style={styles.inputIcon}
               />
               <TextInput
-                style={[styles.input, { color: '#fff' }]}
+                style={[styles.input, { color: "#fff" }]}
                 placeholder="Password"
                 placeholderTextColor="#fff"
                 value={password}
@@ -91,34 +124,33 @@ export default function Login({ navigation }) {
                 secureTextEntry
               />
             </View>
-			{/* End ng Password */}
-
+            {/* End ng Password */}
           </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* White Panel */}
       <View style={styles.whitePanel}>
-
-		{/* Forgot Password */}
-        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+        {/* Forgot Password */}
+        <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
         {/* Login Button */}
-        <TouchableOpacity style={styles.Btn} onPress={() => navigation.navigate('Home')}>
+        <TouchableOpacity style={styles.Btn} onPress={attemptLogin}>
           <Text style={styles.BtnText}>Login</Text>
         </TouchableOpacity>
 
         {/* Divider (or na TXT) */}
         <Text style={styles.orText}>or</Text>
 
-		{/* Create Account Button */}
-        <TouchableOpacity style={styles.Btn} onPress={() => navigation.navigate('CreateAccount')}>
+        {/* Create Account Button */}
+        <TouchableOpacity
+          style={styles.Btn}
+          onPress={() => navigation.navigate("CreateAccount")}
+        >
           <Text style={styles.BtnText}>Create Account</Text>
         </TouchableOpacity>
-
       </View>
     </LinearGradient>
   );
