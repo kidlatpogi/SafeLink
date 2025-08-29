@@ -43,12 +43,9 @@ export default function Login({ navigation }) {
       if (data.message == "success") {
         navigation.navigate("Home");
       }
-      console.log("Fetched data:", data);
-
-      return data;
+      console.log(data);
     } catch (error) {
       console.error("Fetch failed:", error.message);
-      return null;
     }
   };
 

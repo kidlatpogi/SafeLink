@@ -67,6 +67,40 @@ $$\   $$ |   $$ |    $$ |  $$ | $$ |  $$ | $$\   $$ |
   const [retypePassword, setRetypePassword] = useState("");
   const [agree, setAgree] = useState(false);
 
+  const attemptCreateAccount = async () => {
+    const role = "family_member";
+
+    try {
+      const response = await fetch(
+        "http://192.168.254.105/safelink-backend/create-account.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            role,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.message == "success") {
+        navigation.navigate("Home");
+      }
+      console.log(data);
+    } catch (error) {
+      console.error("Fetch failed:", error.message);
+    }
+  };
+
   return (
     <View
       style={styles.screen}
