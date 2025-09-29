@@ -1,0 +1,88 @@
+{
+  "expo": {
+    "name": "SafeLink",
+    "slug": "safelink",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/src/Images/SafeLink_LOGO.png",
+    "userInterfaceStyle": "light",
+    "scheme": "safelink",
+    "splash": {
+      "image": "./assets/src/Images/SafeLink_LOGO.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zeus.safelink",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "config": {
+        "googleSignIn": {
+          "reservedClientId": "947195980810-iqn4dberfu733cuk9332aitc1ren96hl.apps.googleusercontent.com"
+        }
+      },
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SafeLink needs access to your location for emergency services and family safety features. This allows us to help emergency responders find you quickly in case of an emergency.",
+        "NSLocationWhenInUseUsageDescription": "SafeLink needs access to your location for emergency services and family safety features. This allows us to help emergency responders find you quickly in case of an emergency.",
+        "NSLocationAlwaysUsageDescription": "SafeLink needs background location access to provide continuous emergency services and family safety monitoring. This ensures we can locate you even when the app is not actively being used.",
+        "NSLocationUsageDescription": "SafeLink needs access to your location for emergency services and family safety features.",
+        "UIBackgroundModes": [
+          "location",
+          "background-processing",
+          "background-fetch",
+          "location",
+          "background-processing",
+          "background-fetch"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/src/Images/SafeLink_LOGO.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.zeus.safelink",
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleSignIn": {
+          "apiKey": "AIzaSyDcqCr3W0ShMeRZAYglc_QIwSFVHKF6nIc",
+          "certificateHash": "58e1c571fbacdc61a15cfc6da196c08f4bb30044e7"
+        }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/src/Images/SafeLink_LOGO.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "SafeLink needs access to your location for emergency services and family safety features.",
+          "locationAlwaysPermission": "SafeLink needs background location access to provide continuous emergency services and family safety monitoring.",
+          "locationWhenInUsePermission": "SafeLink needs access to your location for emergency services and family safety features.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f1d7df27-e539-4004-a27a-8f89ba8bd96a"
+      }
+    }
+  }
+}

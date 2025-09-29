@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "947195980810",
+    "project_id": "disaster-preparedness-b21f9",
+    "storage_bucket": "disaster-preparedness-b21f9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:947195980810:android:ff98aba7e37e5cf50503f3",
+        "android_client_info": {
+          "package_name": "com.zeus.safelink"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "947195980810-trgaoi6be6k2cva2vjc442n6lr6erlon.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC7MKVdGggLuKslNcG2JcjDSCMMuZ5ci4g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "947195980810-trgaoi6be6k2cva2vjc442n6lr6erlon.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "947195980810-iqn4dberfu733cuk9332aitc1ren96hl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.zeus.safelink"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
