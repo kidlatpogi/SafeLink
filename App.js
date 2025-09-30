@@ -6,6 +6,12 @@ import { auth, db } from "./assets/src/firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { createStackNavigator } from "@react-navigation/stack";
+
+// Context Providers
+import { UserProvider } from "./assets/src/Components/UserContext";
+import { FamilyProvider } from "./assets/src/Components/FamilyContext";
+
+// Screens
 import Get_Started from "./assets/src/Screens/Get_Started";
 import Create_Account from "./assets/src/Screens/Create_Account";
 import Login from "./assets/src/Screens/Login";
@@ -14,11 +20,14 @@ import Home from "./assets/src/Screens/Home";
 import TermsPrivacy from "./assets/src/Screens/TermsPrivacy";
 import User_Form from "./assets/src/Screens/User_Form";
 import LocationSettings from "./assets/src/Screens/LocationSettings";
+import BroadcastSettingsScreen from "./assets/src/Screens/BroadcastSettingsScreen";
 import LocationTest from "./assets/src/Screens/LocationTest";
 import EmergencyBroadcast from "./assets/src/Screens/EmergencyBroadcast";
+import BroadcastFeed from "./assets/src/Screens/BroadcastFeed";
 import EvacuationCenters from "./assets/src/Screens/EvacuationCenters";
 import FamilyCheckIn from "./assets/src/Screens/FamilyCheckIn";
 import AddFamily from "./assets/src/Screens/AddFamily";
+import FamilyDetails from "./assets/src/Screens/FamilyDetails";
 import Go_Bag from "./assets/src/Screens/Go_Bag";
 
 const Stack = createStackNavigator();
@@ -118,26 +127,33 @@ export default function App() {
 
   // Main Navigation
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName={initialRoute}
-        screenOptions={{ headerShown: false }}
-      >
-        <Stack.Screen name="GetStarted" component={Get_Started} />
-        <Stack.Screen name="CreateAccount" component={Create_Account} />
-        <Stack.Screen name="ForgotPassword" component={Forgot_Password} />
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="TermsPrivacy" component={TermsPrivacy} />
-        <Stack.Screen name="User_Form" component={User_Form} />
-        <Stack.Screen name="LocationSettings" component={LocationSettings} />
-        <Stack.Screen name="LocationTest" component={LocationTest} />
-        <Stack.Screen name="EmergencyBroadcast" component={EmergencyBroadcast} />
-        <Stack.Screen name="EvacuationCenters" component={EvacuationCenters} />
-        <Stack.Screen name="FamilyCheckIn" component={FamilyCheckIn} />
-        <Stack.Screen name="AddFamily" component={AddFamily} />
-        <Stack.Screen name="Go_Bag" component={Go_Bag} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <UserProvider>
+      <FamilyProvider>
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName={initialRoute}
+            screenOptions={{ headerShown: false }}
+          >
+            <Stack.Screen name="GetStarted" component={Get_Started} />
+            <Stack.Screen name="CreateAccount" component={Create_Account} />
+            <Stack.Screen name="ForgotPassword" component={Forgot_Password} />
+            <Stack.Screen name="Home" component={Home} />
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="TermsPrivacy" component={TermsPrivacy} />
+            <Stack.Screen name="User_Form" component={User_Form} />
+            <Stack.Screen name="LocationSettings" component={LocationSettings} />
+            <Stack.Screen name="BroadcastSettings" component={BroadcastSettingsScreen} />
+            <Stack.Screen name="LocationTest" component={LocationTest} />
+            <Stack.Screen name="EmergencyBroadcast" component={EmergencyBroadcast} />
+            <Stack.Screen name="BroadcastFeed" component={BroadcastFeed} />
+            <Stack.Screen name="EvacuationCenters" component={EvacuationCenters} />
+            <Stack.Screen name="FamilyCheckIn" component={FamilyCheckIn} />
+            <Stack.Screen name="AddFamily" component={AddFamily} />
+            <Stack.Screen name="FamilyDetails" component={FamilyDetails} />
+            <Stack.Screen name="Go_Bag" component={Go_Bag} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </FamilyProvider>
+    </UserProvider>
   );
 }

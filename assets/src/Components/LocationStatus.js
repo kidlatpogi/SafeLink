@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { auth, db } from '../firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 const LocationStatus = ({ styles }) => {
   const [locationData, setLocationData] = useState(null);
@@ -56,7 +57,84 @@ const LocationStatus = ({ styles }) => {
 
   const refreshLocationStatus = async () => {
     setIsRefreshing(true);
-    await checkLocationStatus();
+    
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert("Error", "No user logged in");
+        setIsRefreshing(false);
+        return;
+      }
+
+      // Request location permissions
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          "Permission Denied", 
+          "Location permission is required to get your current location."
+        );
+        setIsRefreshing(false);
+        return;
+      }
+
+      // Get fresh live location from device GPS
+      const freshLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeout: 15000,
+        maximumAge: 1000, // Don't use cached location older than 1 second
+      });
+
+      const { latitude, longitude, accuracy } = freshLocation.coords;
+      const timestamp = new Date().toISOString();
+
+      // Create new location data object
+      const newLocationData = {
+        latitude,
+        longitude,
+        accuracy,
+        timestamp
+      };
+
+      // Update local state immediately
+      setLocationData(newLocationData);
+      setLastUpdate(new Date().toLocaleString());
+
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('lastKnownLocation', JSON.stringify(newLocationData));
+
+      // Update Firestore with fresh location
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        'profile.coordinates': {
+          latitude,
+          longitude,
+          accuracy,
+          timestamp
+        },
+        'profile.lastLocationUpdate': new Date().toLocaleString()
+      });
+
+      Alert.alert(
+        "Location Updated", 
+        `Fresh location obtained!\n ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n Accuracy: ${accuracy.toFixed(0)}m`
+      );
+
+    } catch (error) {
+      console.error('Error getting fresh location:', error);
+      
+      let errorMessage = "Failed to get current location.";
+      if (error.code === 'E_LOCATION_TIMEOUT') {
+        errorMessage = "Location request timed out. Please try again.";
+      } else if (error.code === 'E_LOCATION_UNAVAILABLE') {
+        errorMessage = "Location services unavailable. Check your GPS settings.";
+      }
+      
+      Alert.alert("Error", errorMessage);
+      
+      // Fallback to checking stored location data
+      await checkLocationStatus();
+    }
+    
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 

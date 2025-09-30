@@ -138,6 +138,18 @@ const HamburgerMenu = ({
               <Ionicons name="chevron-forward" size={20} color="#fff" />
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                hideMenu();
+                navigation.navigate("BroadcastSettings");
+              }}
+            >
+              <Ionicons name="radio-outline" size={24} color="#fff" />
+              <Text style={styles.menuText}>Broadcast Settings</Text>
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            </TouchableOpacity>
+
             <View style={styles.menuDivider} />
 
             <TouchableOpacity

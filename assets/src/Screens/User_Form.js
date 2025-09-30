@@ -5,19 +5,64 @@ import {
   KeyboardAvoidingView,
   Alert,
   Platform,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
 } from "react-native";
 import { auth, db } from '../firebaseConfig';
 import { updateProfile } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 import styles from '../Styles/Create_Account.styles'; // Reusing styles
+
+// Enhanced styles for the professional header
+const enhancedStyles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FF6F00',
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+    fontFamily: 'Montserrat-VariableFont_wght',
+  },
+});
 
 // Import components
 import UserFormHeader from '../Components/UserFormHeader';
 import NameInputs from '../Components/NameInputs';
 import PhoneInput from '../Components/PhoneInput';
 import LocationPicker from '../Components/LocationPicker';
+import PhilippineLocationDropdown from '../Components/PhilippineLocationDropdown';
+import HamburgerMenu from '../Components/HamburgerMenu';
 // import LocationSettings from '../Components/LocationSettings'; // Temporarily disabled
 import BirthdatePicker from '../Components/BirthdatePicker';
 import InfoBox from '../Components/InfoBox';
@@ -34,6 +79,15 @@ export default function User_Form({ navigation, route }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
+  
+  // Administrative location state
+  const [administrativeLocation, setAdministrativeLocation] = useState({
+    country: '',
+    province: '',
+    municipality: '',
+    barangay: ''
+  });
 
   // Check if this is edit mode (coming from hamburger menu) or first-time setup
   useEffect(() => {
@@ -60,6 +114,13 @@ export default function User_Form({ navigation, route }) {
             if (profile.coordinates) {
               setCoordinates(profile.coordinates);
             }
+            
+            // Handle administrative location
+            if (profile.administrativeLocation) {
+              setAdministrativeLocation(profile.administrativeLocation);
+            }
+            
+            // Handle broadcast settings
             
             // Handle birthdate
             if (profile.birthdate) {
@@ -146,7 +207,8 @@ export default function User_Form({ navigation, route }) {
             firstName: firstName,
             lastName: lastName,
             role: "family_member", // Default role
-            profilePhoto: ""
+            profilePhoto: "",
+            administrativeLocation: administrativeLocation // Store country, province, municipality, barangay
           },
           userId: user.uid,
           updatedAt: new Date().toLocaleString() // Track when profile was last updated
@@ -257,7 +319,28 @@ export default function User_Form({ navigation, route }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      <UserFormHeader isEditMode={isEditMode} />
+      {/* Enhanced Header */}
+      <View style={enhancedStyles.header}>
+        <TouchableOpacity 
+          style={enhancedStyles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={32} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={enhancedStyles.headerCenter}>
+          <Text style={enhancedStyles.headerTitle}>
+            {isEditMode ? 'Edit Profile' : 'Complete Profile'}
+          </Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={enhancedStyles.headerButton}
+          onPress={() => setIsMenuVisible(true)}
+        >
+          <Ionicons name="menu" size={32} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -290,6 +373,14 @@ export default function User_Form({ navigation, route }) {
               styles={styles}
             />
 
+            <PhilippineLocationDropdown
+              onLocationChange={setAdministrativeLocation}
+              initialProvince={administrativeLocation.province}
+              initialCity={administrativeLocation.municipality}
+              initialBarangay={administrativeLocation.barangay}
+              coordinates={coordinates}
+            />
+
             {/* <LocationSettings styles={styles} /> */}
 
             <BirthdatePicker 
@@ -313,6 +404,12 @@ export default function User_Form({ navigation, route }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      
+      <HamburgerMenu 
+        isVisible={isMenuVisible}
+        onClose={() => setIsMenuVisible(false)}
+        navigation={navigation}
+      />
     </View>
   );
 }
