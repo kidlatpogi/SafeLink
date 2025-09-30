@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -8,10 +8,12 @@ import {
   Alert,
   Platform,
   Share,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../Styles/Go_Bag.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
+import HamburgerMenu from "../Components/HamburgerMenu";
 
 // Conditional import for web-only PDF functionality
 let jsPDF, autoTable;
@@ -38,6 +40,28 @@ export default function Go_Bag({ navigation }) {
   ];
 
   const [checkedItems, setCheckedItems] = useState([]);
+
+  // Hamburger menu state
+  const [menuVisible, setMenuVisible] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  // Hamburger menu function
+  const showMenu = () => {
+    setMenuVisible(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const toggleItem = (item) => {
     if (checkedItems.includes(item)) {
@@ -151,7 +175,7 @@ export default function Go_Bag({ navigation }) {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={28} color="white" />
+            <Ionicons name="arrow-back" size={32} color="white" />
           </TouchableOpacity>
 
           <View style={styles.logoWrapper}>
@@ -162,9 +186,9 @@ export default function Go_Bag({ navigation }) {
             </Text>
           </View>
 
-          <View style={{ padding: 6, alignItems: "center", justifyContent: "center" }}>
-            <Ionicons name="person-circle" size={32} color="white" />
-          </View>
+          <TouchableOpacity onPress={showMenu}>
+            <Ionicons name="menu" size={32} color="white" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -235,6 +259,15 @@ export default function Go_Bag({ navigation }) {
           <Text style={{ color: "#fff", fontWeight: "bold" }}>SHARE</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Hamburger Menu */}
+      <HamburgerMenu
+        menuVisible={menuVisible}
+        setMenuVisible={setMenuVisible}
+        slideAnim={slideAnim}
+        opacityAnim={opacityAnim}
+        navigation={navigation}
+      />
     </View>
   );
 }

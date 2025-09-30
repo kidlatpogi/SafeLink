@@ -11,11 +11,44 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import LocationService from '../Components/LocationService';
+import OptimizedLocationService from '../Components/OptimizedLocationService';
+import useOptimizedLocation from '../Components/useOptimizedLocation';
 
 const LocationTest = ({ navigation }) => {
+  // Use optimized location hook for testing
+  const { 
+    location, 
+    loading, 
+    error, 
+    permissions, 
+    refreshLocation, 
+    getStats,
+    isLocationFresh
+  } = useOptimizedLocation({
+    enableTracking: true,
+    emergencyMode: false
+  });
+
   const [testResults, setTestResults] = useState({});
   const [testing, setTesting] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [optimizedStats, setOptimizedStats] = useState({});
+
+  // Update stats periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOptimizedStats(getStats());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [getStats]);
+
+  // Update current location when optimized location changes
+  useEffect(() => {
+    if (location) {
+      setCurrentLocation(location);
+    }
+  }, [location]);
 
   const runLocationTest = async () => {
     setTesting(true);
@@ -98,6 +131,33 @@ const LocationTest = ({ navigation }) => {
         results.backgroundTaskRegistration = false;
         results.taskError = taskError.message;
         console.log(`❌ Background task registration failed:`, taskError.message);
+      }
+
+      // Test 8: Test OptimizedLocationService
+      console.log('🧪 Testing OptimizedLocationService...');
+      try {
+        const optimizedLocation = await OptimizedLocationService.getCurrentLocation();
+        results.optimizedLocationFetch = true;
+        results.optimizedLocationData = optimizedLocation;
+        console.log(`✅ OptimizedLocationService fetch successful:`, optimizedLocation);
+      } catch (optimizedError) {
+        results.optimizedLocationFetch = false;
+        results.optimizedError = optimizedError.message;
+        console.log(`❌ OptimizedLocationService fetch failed:`, optimizedError.message);
+      }
+
+      // Test 9: Test location mode switching
+      console.log('🧪 Testing location mode switching...');
+      try {
+        await OptimizedLocationService.setTrackingMode('EMERGENCY');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a second
+        await OptimizedLocationService.setTrackingMode('NORMAL');
+        results.modeSwitching = true;
+        console.log(`✅ Location mode switching successful`);
+      } catch (modeError) {
+        results.modeSwitching = false;
+        results.modeError = modeError.message;
+        console.log(`❌ Location mode switching failed:`, modeError.message);
       }
 
     } catch (error) {
@@ -222,6 +282,24 @@ const LocationTest = ({ navigation }) => {
               }
             />
 
+            <TestResult
+              title="OptimizedLocationService"
+              status={testResults.optimizedLocationFetch}
+              details={testResults.optimizedLocationFetch ? 
+                'Optimized service working correctly' : 
+                testResults.optimizedError || 'Optimized service failed'
+              }
+            />
+
+            <TestResult
+              title="Location Mode Switching"
+              status={testResults.modeSwitching}
+              details={testResults.modeSwitching ? 
+                'Mode switching operational' : 
+                testResults.modeError || 'Mode switching failed'
+              }
+            />
+
             {testResults.generalError && (
               <TestResult
                 title="General Error"
@@ -247,8 +325,78 @@ const LocationTest = ({ navigation }) => {
             <Text style={styles.locationText}>
               ⏰ Timestamp: {new Date().toLocaleString()}
             </Text>
+            <Text style={styles.locationText}>
+              🔋 Fresh: {isLocationFresh ? 'Yes' : 'No'}
+            </Text>
           </View>
         )}
+
+        {/* Optimized Location Service Stats */}
+        <View style={styles.optimizedCard}>
+          <Text style={styles.optimizedTitle}>🚀 Optimized Location Service</Text>
+          
+          <View style={styles.statsRow}>
+            <Text style={styles.statLabel}>Status:</Text>
+            <Text style={[styles.statValue, { color: optimizedStats.isTracking ? '#28a745' : '#dc3545' }]}>
+              {optimizedStats.isTracking ? 'Active' : 'Inactive'}
+            </Text>
+          </View>
+          
+          <View style={styles.statsRow}>
+            <Text style={styles.statLabel}>Mode:</Text>
+            <Text style={styles.statValue}>{optimizedStats.currentMode || 'NORMAL'}</Text>
+          </View>
+          
+          <View style={styles.statsRow}>
+            <Text style={styles.statLabel}>Emergency:</Text>
+            <Text style={[styles.statValue, { color: optimizedStats.emergencyMode ? '#dc3545' : '#28a745' }]}>
+              {optimizedStats.emergencyMode ? 'ON' : 'OFF'}
+            </Text>
+          </View>
+          
+          <View style={styles.statsRow}>
+            <Text style={styles.statLabel}>Cache Age:</Text>
+            <Text style={styles.statValue}>
+              {optimizedStats.cacheAge ? `${Math.round(optimizedStats.cacheAge / 1000)}s` : 'N/A'}
+            </Text>
+          </View>
+          
+          <View style={styles.statsRow}>
+            <Text style={styles.statLabel}>Listeners:</Text>
+            <Text style={styles.statValue}>{optimizedStats.listenersCount || 0}</Text>
+          </View>
+
+          {/* Mode switching controls */}
+          <View style={styles.modeControls}>
+            <Text style={styles.modeControlTitle}>Test Location Modes:</Text>
+            <View style={styles.modeButtons}>
+              <TouchableOpacity 
+                style={[styles.modeButton, { backgroundColor: '#28a745' }]}
+                onPress={() => OptimizedLocationService.setTrackingMode('NORMAL')}
+              >
+                <Text style={styles.modeButtonText}>Normal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modeButton, { backgroundColor: '#ffc107' }]}
+                onPress={() => OptimizedLocationService.setTrackingMode('POWER_SAVE')}
+              >
+                <Text style={styles.modeButtonText}>Power Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modeButton, { backgroundColor: '#dc3545' }]}
+                onPress={() => OptimizedLocationService.enableEmergencyMode()}
+              >
+                <Text style={styles.modeButtonText}>Emergency</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modeButton, { backgroundColor: '#6c757d' }]}
+                onPress={() => OptimizedLocationService.setTrackingMode('STATIONARY')}
+              >
+                <Text style={styles.modeButtonText}>Stationary</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
 
         <View style={styles.troubleshootCard}>
           <Text style={styles.troubleshootTitle}>Troubleshooting Tips</Text>
@@ -372,6 +520,64 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2e7d32',
     marginBottom: 5,
+  },
+  optimizedCard: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+  },
+  optimizedTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1976d2',
+    marginBottom: 15,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#1976d2',
+    fontWeight: '600',
+  },
+  statValue: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  modeControls: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#bbdefb',
+  },
+  modeControlTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1976d2',
+    marginBottom: 10,
+  },
+  modeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  modeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    flex: 1,
+    minWidth: '45%',
+  },
+  modeButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   troubleshootCard: {
     backgroundColor: '#fff3e0',

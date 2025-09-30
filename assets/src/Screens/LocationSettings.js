@@ -162,11 +162,11 @@ export default function LocationSettings({ navigation }) {
       await loadLocationSettings(); // Refresh status
       
       Alert.alert(
-        "✅ Location Updated Successfully",
+        "Location Updated Successfully",
         `Your precise location has been saved:\n\n` +
-        `📍 Coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}\n` +
-        `🎯 Accuracy: ${location.accuracy?.toFixed(0)}m\n` +
-        `⏰ Updated: ${new Date().toLocaleTimeString()}\n\n` +
+        `Coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}\n` +
+        `Accuracy: ${location.accuracy?.toFixed(0)}m\n` +
+        `Updated: ${new Date().toLocaleTimeString()}\n\n` +
         `This location is now available for emergency services.`
       );
     } catch (error) {
@@ -197,24 +197,43 @@ export default function LocationSettings({ navigation }) {
     <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       {/* Header */}
       <View style={{
-        backgroundColor: '#007AFF',
-        paddingTop: Platform.OS === 'ios' ? 50 : 25,
-        paddingBottom: 15,
-        paddingHorizontal: 20
+        backgroundColor: '#FF6F00',
+        paddingTop: Platform.OS === 'ios' ? 50 : 50,
+        paddingBottom: 16,
+        paddingHorizontal: 16,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
       }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+        <View style={{ 
+          flexDirection: 'row', 
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            style={{
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="arrow-back" size={32} color="#fff" />
           </TouchableOpacity>
           <Text style={{
             color: '#fff',
             fontSize: 20,
             fontWeight: 'bold',
-            marginLeft: 15,
+            flex: 1,
+            textAlign: 'center',
             fontFamily: 'Montserrat-Regular'
           }}>
             Location Settings
           </Text>
+          <View style={{ width: 40 }} />
         </View>
       </View>
 
@@ -314,7 +333,7 @@ export default function LocationSettings({ navigation }) {
               marginBottom: 15,
               fontFamily: 'Montserrat-Regular'
             }}>
-              📋 Permission Status
+              Permission Status
             </Text>
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>

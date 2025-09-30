@@ -7,8 +7,8 @@ import {
   Linking,
   ScrollView,
 } from "react-native";
-import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
+import useOptimizedLocation from "../Components/useOptimizedLocation";
 import styles from "../Styles/EvacuationCenters.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
 
@@ -38,31 +38,33 @@ const centers = [
 ];
 
 export default function EvacuationCenters({ navigation }) {
+  // Use optimized location with normal mode (balanced accuracy for navigation)
+  const { location, loading: locationLoading, error: locationError } = useOptimizedLocation({
+    enableTracking: true,
+    emergencyMode: false, // Normal mode for evacuation center routing
+    onLocationUpdate: (newLocation) => {
+      // Find nearest center when location updates
+      findNearest(newLocation);
+    }
+  });
+
   const [nearest, setNearest] = useState(null);
 
+  // Find nearest evacuation center when location becomes available
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        alert("Permission to access location was denied");
-        return;
-      }
+    if (location) {
+      findNearest(location);
+    }
+  }, [location]);
 
-      Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.Highest, distanceInterval: 50 },
-        (loc) => {
-          findNearest(loc.coords);
-        }
-      );
-    })();
-  }, []);
-
-  const findNearest = (coords) => {
+  const findNearest = (locationData) => {
+    if (!locationData) return;
+    
     let minDist = Infinity;
     let nearestCenter = null;
 
     centers.forEach((c) => {
-      let d = getDistance(coords.latitude, coords.longitude, c.lat, c.lon);
+      let d = getDistance(locationData.latitude, locationData.longitude, c.lat, c.lon);
       if (d < minDist) {
         minDist = d;
         nearestCenter = c;

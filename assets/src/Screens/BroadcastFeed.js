@@ -1,46 +1,478 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet } from "react-native";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import React, { useEffect, useState, useRef } from "react";
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  TouchableOpacity, 
+  Image, 
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
+  StatusBar,
+  SafeAreaView,
+  Animated
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { collection, query, orderBy, onSnapshot, where, doc, getDoc } from "firebase/firestore";
+import * as Location from "expo-location";
+import { db, auth } from "../firebaseConfig";
+import useOptimizedLocation from "../Components/useOptimizedLocation";
+import { getBroadcastSettings } from "../Components/BroadcastSettings";
+import styles from "../Styles/BroadcastFeed.styles";
+import Logo from "../Images/SafeLink_LOGO.png";
+import HamburgerMenu from "../Components/HamburgerMenu";
 
-export default function BroadcastFeed() {
+// Calculate distance between two coordinates in kilometers
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+// Check if administrative areas match
+const matchesAdministrativeArea = (broadcastLocation, userAdminLocation) => {
+  if (!broadcastLocation || !userAdminLocation) return false;
+  
+  // Check barangay match (most specific)
+  if (broadcastLocation.barangay && userAdminLocation.barangay) {
+    return broadcastLocation.barangay.toLowerCase().includes(userAdminLocation.barangay.toLowerCase()) ||
+           userAdminLocation.barangay.toLowerCase().includes(broadcastLocation.barangay.toLowerCase());
+  }
+  
+  // Check municipality match
+  if (broadcastLocation.municipality && userAdminLocation.municipality) {
+    return broadcastLocation.municipality.toLowerCase().includes(userAdminLocation.municipality.toLowerCase()) ||
+           userAdminLocation.municipality.toLowerCase().includes(broadcastLocation.municipality.toLowerCase());
+  }
+  
+  // Check province match
+  if (broadcastLocation.province && userAdminLocation.province) {
+    return broadcastLocation.province.toLowerCase().includes(userAdminLocation.province.toLowerCase()) ||
+           userAdminLocation.province.toLowerCase().includes(broadcastLocation.province.toLowerCase());
+  }
+  
+  return false;
+};
+
+export default function BroadcastFeed({ navigation }) {
+  // Use optimized location for broadcast filtering
+  const { 
+    location: userLocation, 
+    loading: locationLoading, 
+    error: locationError,
+    refreshLocation 
+  } = useOptimizedLocation({
+    enableTracking: false, // Just need current location for filtering
+    onLocationUpdate: (newLocation) => {
+      // Update location name when location changes
+      reverseGeocodeLocation(newLocation);
+    }
+  });
+
   const [broadcasts, setBroadcasts] = useState([]);
+  const [filteredBroadcasts, setFilteredBroadcasts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [locationName, setLocationName] = useState("your location");
+  const [userProfile, setUserProfile] = useState(null);
+  const [broadcastSettings, setBroadcastSettings] = useState({
+    radiusEnabled: true,
+    radius: 20,
+    adminEnabled: true,
+  });
 
+  // Hamburger menu state
+  const [menuVisible, setMenuVisible] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  // Load user profile and broadcast settings on mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          // Load user profile
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserProfile(userData);
+            
+            // Load broadcast settings from profile or AsyncStorage
+            if (userData.profile?.broadcastSettings) {
+              setBroadcastSettings(userData.profile.broadcastSettings);
+            } else {
+              const savedSettings = await getBroadcastSettings();
+              setBroadcastSettings(savedSettings);
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load user data:', error);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  // Reverse geocode location for display
+  const reverseGeocodeLocation = async (location) => {
+    try {
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude: location.latitude,
+        longitude: location.longitude,
+      });
+
+      if (reverseGeocode && reverseGeocode.length > 0) {
+        const place = reverseGeocode[0];
+        const name = place.city || place.district || place.subregion || "your area";
+        setLocationName(name);
+      }
+    } catch (error) {
+      console.warn('Failed to reverse geocode location:', error);
+    }
+  };
+
+  // Listen to broadcasts
   useEffect(() => {
     const q = query(collection(db, "broadcasts"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const data = snapshot.docs.map((doc) => ({ 
+        id: doc.id, 
+        ...doc.data(),
+        timestamp: doc.data().createdAt?.toDate()
+      }));
       setBroadcasts(data);
+      setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
+  // Smart broadcast filtering based on user settings
+  useEffect(() => {
+    if (broadcasts.length === 0) {
+      setFilteredBroadcasts([]);
+      return;
+    }
+
+    let filtered = broadcasts;
+
+    // Apply location-based filtering if enabled
+    if (broadcastSettings.radiusEnabled && userLocation) {
+      const radiusFiltered = broadcasts.filter(broadcast => {
+        if (!broadcast.coordinates) return true; // Include broadcasts without coordinates
+        
+        const distance = calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          broadcast.coordinates.latitude,
+          broadcast.coordinates.longitude
+        );
+        
+        return distance <= broadcastSettings.radius;
+      });
+      
+      filtered = radiusFiltered;
+    }
+
+    // Apply administrative area filtering if enabled
+    if (broadcastSettings.adminEnabled && userProfile?.profile?.administrativeLocation) {
+      const adminFiltered = filtered.filter(broadcast => {
+        // Include if it matches location radius (already filtered above)
+        if (broadcastSettings.radiusEnabled && userLocation && broadcast.coordinates) {
+          return true; // Already included by radius filter
+        }
+        
+        // Check administrative area match
+        return matchesAdministrativeArea(
+          broadcast.administrativeLocation, 
+          userProfile.profile.administrativeLocation
+        );
+      });
+      
+      // Combine location and admin filtered results, removing duplicates
+      if (broadcastSettings.radiusEnabled && userLocation) {
+        const radiusFiltered = broadcasts.filter(broadcast => {
+          if (!broadcast.coordinates) return false;
+          
+          const distance = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            broadcast.coordinates.latitude,
+            broadcast.coordinates.longitude
+          );
+          
+          return distance <= broadcastSettings.radius;
+        });
+        
+        const adminFiltered = broadcasts.filter(broadcast => 
+          matchesAdministrativeArea(
+            broadcast.administrativeLocation, 
+            userProfile.profile.administrativeLocation
+          )
+        );
+        
+        // Merge and deduplicate
+        const combined = [...radiusFiltered, ...adminFiltered];
+        const uniqueIds = new Set();
+        filtered = combined.filter(broadcast => {
+          if (uniqueIds.has(broadcast.id)) return false;
+          uniqueIds.add(broadcast.id);
+          return true;
+        });
+      } else {
+        filtered = adminFiltered;
+      }
+    }
+
+    setFilteredBroadcasts(filtered);
+  }, [broadcasts, userLocation, broadcastSettings, userProfile]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshLocation();
+    } catch (error) {
+      console.warn('Failed to refresh location:', error);
+    }
+    setRefreshing(false);
+  };
+
+  // Hamburger menu functions
+  const showMenu = () => {
+    setMenuVisible(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const getFilterDescription = () => {
+    const parts = [];
+    
+    if (broadcastSettings.radiusEnabled && userLocation) {
+      parts.push(`${broadcastSettings.radius}km radius`);
+    }
+    
+    if (broadcastSettings.adminEnabled && userProfile?.profile?.administrativeLocation) {
+      const admin = userProfile.profile.administrativeLocation;
+      if (admin.barangay) parts.push(`Barangay ${admin.barangay}`);
+      else if (admin.municipality) parts.push(`${admin.municipality}`);
+      else if (admin.province) parts.push(`${admin.province}`);
+    }
+    
+    if (parts.length === 0) return "all alerts";
+    return parts.join(" and ");
+  };
+
+  const formatTimeAgo = (timestamp) => {
+    if (!timestamp) return "Recently";
+    
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - timestamp) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  };
+
+  const getEmergencyIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'fire': return 'flame';
+      case 'flood': return 'water';
+      case 'earthquake': return 'pulse';
+      case 'medical': return 'medical';
+      case 'crime': return 'shield';
+      case 'typhoon':
+      case 'weather': return 'thunderstorm';
+      default: return 'warning';
+    }
+  };
+
+  const getEmergencyColor = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'fire': return '#FF6B35';
+      case 'flood': return '#4A90E2';
+      case 'earthquake': return '#8B4513';
+      case 'medical': return '#FF1744';
+      case 'crime': return '#6A1B9A';
+      case 'typhoon':
+      case 'weather': return '#607D8B';
+      default: return '#FF8F00';
+    }
+  };
+
+  const renderBroadcastItem = ({ item }) => (
+    <TouchableOpacity style={styles.broadcastItem}>
+      <View style={styles.broadcastHeader}>
+        <View style={styles.emergencyTypeContainer}>
+          <Ionicons 
+            name={getEmergencyIcon(item.emergencyType)} 
+            size={24} 
+            color={getEmergencyColor(item.emergencyType)} 
+          />
+          <Text style={[styles.emergencyType, { color: getEmergencyColor(item.emergencyType) }]}>
+            {item.emergencyType?.toUpperCase() || 'EMERGENCY'}
+          </Text>
+        </View>
+        <Text style={styles.timeAgo}>{formatTimeAgo(item.timestamp)}</Text>
+      </View>
+      
+      <Text style={styles.broadcastMessage}>{item.message}</Text>
+      
+      {item.location && (
+        <View style={styles.locationContainer}>
+          <Ionicons name="location" size={16} color="#666" />
+          <Text style={styles.locationText}>{item.location}</Text>
+        </View>
+      )}
+      
+      <View style={styles.broadcastFooter}>
+        <Text style={styles.broadcasterName}>
+          {item.broadcasterName || 'Anonymous'}
+        </Text>
+        {item.coordinates && userLocation && (
+          <Text style={styles.distanceText}>
+            {calculateDistance(
+              userLocation.latitude,
+              userLocation.longitude,
+              item.coordinates.latitude,
+              item.coordinates.longitude
+            ).toFixed(1)} km away
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar backgroundColor="#FF6F00" barStyle="light-content" />
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={32} color="white" />
+          </TouchableOpacity>
+          <View style={styles.logoWrapper}>
+            <Image source={Logo} style={styles.logo} />
+            <Text style={styles.headerTitle}>SafeLink</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.hamburgerButton}
+            onPress={showMenu}
+          >
+            <Ionicons name="menu" size={32} color="white" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF6F00" />
+          <Text style={styles.loadingText}>Loading emergency broadcasts...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Emergency Alerts</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#FF6F00" barStyle="light-content" />
+      
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={32} color="white" />
+        </TouchableOpacity>
+        <View style={styles.logoWrapper}>
+          <Image source={Logo} style={styles.logo} />
+          <Text style={styles.headerTitle}>SafeLink</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.hamburgerButton}
+          onPress={showMenu}
+        >
+          <Ionicons name="menu" size={32} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      {locationError && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="warning" size={20} color="#E82222" />
+          <Text style={styles.errorText}>
+            Location unavailable - showing all broadcasts
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.filterInfo}>
+        <Ionicons name="filter" size={16} color="#666" />
+        <Text style={styles.filterText}>
+          Showing {getFilterDescription()}
+        </Text>
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('User_Form')}
+          style={styles.settingsButton}
+        >
+          <Ionicons name="settings" size={16} color="#007BFF" />
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={broadcasts}
+        data={filteredBroadcasts}
+        renderItem={renderBroadcastItem}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.type}>{item.alertType}</Text>
-            <Text>{item.location} - {item.barangay}</Text>
-            <Text>{item.message}</Text>
-            <Text style={styles.time}>
-              {item.createdAt?.toDate().toLocaleString()}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="radio" size={64} color="#ccc" />
+            <Text style={styles.emptyTitle}>No Emergency Broadcasts</Text>
+            <Text style={styles.emptyText}>
+              {filteredBroadcasts.length === 0 && broadcasts.length > 0 
+                ? `No broadcasts found for ${getFilterDescription()}`
+                : "No active emergency broadcasts in your area"
+              }
             </Text>
           </View>
-        )}
+        }
+        showsVerticalScrollIndicator={false}
       />
-    </View>
+
+      {/* Hamburger Menu */}
+      <HamburgerMenu
+        menuVisible={menuVisible}
+        setMenuVisible={setMenuVisible}
+        slideAnim={slideAnim}
+        opacityAnim={opacityAnim}
+        navigation={navigation}
+      />
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#FFE0B2" },
-  title: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  card: { backgroundColor: "#fff", padding: 12, borderRadius: 8, marginBottom: 10 },
-  type: { fontWeight: "bold", color: "#E65100" },
-  time: { fontSize: 12, color: "#555", marginTop: 4 },
-});

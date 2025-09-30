@@ -22,18 +22,8 @@
         }
       },
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "SafeLink needs access to your location for emergency services and family safety features. This allows us to help emergency responders find you quickly in case of an emergency.",
         "NSLocationWhenInUseUsageDescription": "SafeLink needs access to your location for emergency services and family safety features. This allows us to help emergency responders find you quickly in case of an emergency.",
-        "NSLocationAlwaysUsageDescription": "SafeLink needs background location access to provide continuous emergency services and family safety monitoring. This ensures we can locate you even when the app is not actively being used.",
         "NSLocationUsageDescription": "SafeLink needs access to your location for emergency services and family safety features.",
-        "UIBackgroundModes": [
-          "location",
-          "background-processing",
-          "background-fetch",
-          "location",
-          "background-processing",
-          "background-fetch"
-        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -73,7 +63,7 @@
           "locationAlwaysAndWhenInUsePermission": "SafeLink needs access to your location for emergency services and family safety features.",
           "locationAlwaysPermission": "SafeLink needs background location access to provide continuous emergency services and family safety monitoring.",
           "locationWhenInUsePermission": "SafeLink needs access to your location for emergency services and family safety features.",
-          "isIosBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }

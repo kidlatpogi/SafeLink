@@ -277,4 +277,95 @@ logoImage: {
   menuBackdropTouchable: {
     flex: 1,
   },
+
+  // Family Status List View Styles
+  familyListContainer: {
+    marginTop: 10,
+  },
+  emptyFamilyContainer: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+  },
+  emptyFamilyText: {
+    color: "#888",
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  emptyFamilySubtext: {
+    color: "#aaa",
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  familyMemberCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4CAF50',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  familyMemberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  familyMemberDetails: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  familyMemberName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  familyMemberEmail: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  familyAdminBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  familyAdminText: {
+    fontSize: 9,
+    color: '#FF9800',
+    fontWeight: '600',
+    marginLeft: 2,
+  },
+  familyMemberStatus: {
+    alignItems: 'center',
+  },
+  familyStatusIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginBottom: 4,
+  },
+  familyStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });

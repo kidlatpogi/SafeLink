@@ -31,7 +31,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     if (location) {
       try {
         await updateUserLocationInFirestore(location.coords);
-        console.log('📍 Background location updated:', {
+        console.log('Background location updated:', {
           lat: location.coords.latitude.toFixed(6),
           lng: location.coords.longitude.toFixed(6),
           accuracy: location.coords.accuracy?.toFixed(0) + 'm',
@@ -56,7 +56,7 @@ const restartLocationTracking = async () => {
   try {
     const isEnabled = await AsyncStorage.getItem('locationTrackingEnabled');
     if (isEnabled === 'true') {
-      console.log('🔄 Restarting location tracking...');
+      console.log('Restarting location tracking...');
       await EnhancedLocationService.startSmartTracking();
     }
   } catch (error) {
@@ -115,7 +115,7 @@ class EnhancedLocationService {
       // Check if tracking was previously enabled
       const trackingEnabled = await AsyncStorage.getItem('locationTrackingEnabled');
       if (trackingEnabled === 'true') {
-        console.log('🚀 Auto-starting location tracking on app launch');
+        console.log('Auto-starting location tracking on app launch');
         await this.startSmartTracking();
       }
       
@@ -128,20 +128,20 @@ class EnhancedLocationService {
 
   // Handle app state changes
   static handleAppStateChange = async (nextAppState) => {
-    console.log('📱 App state changed to:', nextAppState);
+    console.log('App state changed to:', nextAppState);
     
     if (nextAppState === 'active') {
       // App became active - restart tracking if needed
       const trackingEnabled = await AsyncStorage.getItem('locationTrackingEnabled');
       if (trackingEnabled === 'true' && !this.isTracking) {
-        console.log('🔄 Restarting location tracking (app became active)');
+        console.log('Restarting location tracking (app became active)');
         await this.startSmartTracking();
       }
     } else if (nextAppState === 'background') {
       // App went to background - ensure background tracking is active
       const trackingEnabled = await AsyncStorage.getItem('locationTrackingEnabled');
       if (trackingEnabled === 'true') {
-        console.log('📍 App in background - maintaining location tracking');
+        console.log('App in background - maintaining location tracking');
         await this.ensureBackgroundTracking();
       }
     }
@@ -189,14 +189,14 @@ class EnhancedLocationService {
       // Start background tracking if permission granted
       if (permissions.background) {
         await this.startBackgroundTracking(options);
-        console.log('✅ Background location tracking started');
+        console.log('Background location tracking started');
         
         // Show status notification
         if (permissions.notifications) {
           await this.showTrackingNotification();
         }
       } else {
-        console.log('⚠️ Background permission not granted, using foreground tracking only');
+        console.log('Background permission not granted, using foreground tracking only');
         await this.scheduleLocationChecks(); // Fallback method
       }
 
@@ -230,7 +230,7 @@ class EnhancedLocationService {
         async (location) => {
           try {
             await updateUserLocationInFirestore(location.coords);
-            console.log('🎯 Foreground location updated:', {
+            console.log('Foreground location updated:', {
               lat: location.coords.latitude.toFixed(6),
               lng: location.coords.longitude.toFixed(6),
               accuracy: location.coords.accuracy?.toFixed(0) + 'm'
@@ -241,7 +241,7 @@ class EnhancedLocationService {
         }
       );
       
-      console.log('✅ Foreground location tracking active');
+      console.log('Foreground location tracking active');
     } catch (error) {
       console.error('Foreground tracking error:', error);
       throw error;
@@ -272,7 +272,7 @@ class EnhancedLocationService {
         }
       });
       
-      console.log('✅ Background location tracking active');
+      console.log('Background location tracking active');
     } catch (error) {
       console.error('Background tracking error:', error);
       throw error;
@@ -284,7 +284,7 @@ class EnhancedLocationService {
     try {
       const isTaskRegistered = await TaskManager.isTaskRegistered(LOCATION_TASK_NAME);
       if (!isTaskRegistered) {
-        console.log('🔄 Background task not registered, restarting...');
+        console.log('Background task not registered, restarting...');
         await this.startBackgroundTracking();
       }
     } catch (error) {
@@ -295,7 +295,7 @@ class EnhancedLocationService {
   // Fallback: Schedule periodic location checks
   static async scheduleLocationChecks() {
     // This is a fallback for when full background tracking isn't available
-    console.log('📅 Scheduling periodic location checks');
+    console.log('Scheduling periodic location checks');
     
     // Check location when app becomes active
     const checkLocation = async () => {
@@ -370,7 +370,7 @@ class EnhancedLocationService {
         console.error('Failed to update tracking status:', firestoreError);
       }
 
-      console.log('🛑 Location tracking stopped');
+      console.log('Location tracking stopped');
       return true;
     } catch (error) {
       console.error('Failed to stop location tracking:', error);
@@ -382,7 +382,7 @@ class EnhancedLocationService {
   static async getCurrentLocation(retries = 3) {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        console.log(`🎯 Getting current location (attempt ${attempt}/${retries})`);
+        console.log(`Getting current location (attempt ${attempt}/${retries})`);
         
         const permissions = await this.requestLocationPermissions();
         if (!permissions.foreground) {
@@ -406,7 +406,7 @@ class EnhancedLocationService {
           // On final attempt, try to get last known location
           const lastKnown = await this.getLastKnownLocation();
           if (lastKnown) {
-            console.log('📍 Using last known location');
+            console.log('Using last known location');
             return lastKnown;
           }
           throw error;
