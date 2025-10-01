@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { 
   View, 
   Text, 
@@ -13,6 +13,7 @@ import {
   Animated
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from '@react-navigation/native';
 import { collection, query, orderBy, onSnapshot, where, doc, getDoc } from "firebase/firestore";
 import * as Location from "expo-location";
 import { db, auth } from "../firebaseConfig";
@@ -122,6 +123,37 @@ export default function BroadcastFeed({ navigation }) {
 
     loadUserData();
   }, []);
+
+  // Reload settings when screen comes into focus (after returning from settings)
+  useFocusEffect(
+    useCallback(() => {
+      const loadUserData = async () => {
+        try {
+          const user = auth.currentUser;
+          if (user) {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              
+              // Update broadcast settings if they changed
+              if (userData.broadcastSettings) {
+                setBroadcastSettings(userData.broadcastSettings);
+              } else {
+                const savedSettings = await getBroadcastSettings();
+                setBroadcastSettings(savedSettings);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to reload user data:', error);
+        }
+      };
+
+      loadUserData();
+    }, [])
+  );
 
   // Reverse geocode location for display
   const reverseGeocodeLocation = async (location) => {
@@ -435,7 +467,7 @@ export default function BroadcastFeed({ navigation }) {
           Showing {getFilterDescription()}
         </Text>
         <TouchableOpacity 
-          onPress={() => navigation.navigate('User_Form')}
+          onPress={() => navigation.navigate('BroadcastSettings')}
           style={styles.settingsButton}
         >
           <Ionicons name="settings" size={16} color="#007BFF" />
