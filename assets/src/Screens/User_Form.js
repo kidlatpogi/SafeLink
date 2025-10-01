@@ -60,7 +60,6 @@ const enhancedStyles = StyleSheet.create({
 import UserFormHeader from '../Components/UserFormHeader';
 import NameInputs from '../Components/NameInputs';
 import PhoneInput from '../Components/PhoneInput';
-import LocationPicker from '../Components/LocationPicker';
 import PhilippineAddressSelector from '../Components/PhilippineAddressSelector';
 import HamburgerMenu from '../Components/HamburgerMenu';
 // import LocationSettings from '../Components/LocationSettings'; // Temporarily disabled
@@ -72,8 +71,6 @@ export default function User_Form({ navigation, route }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("09");
-  const [address, setAddress] = useState("");
-  const [coordinates, setCoordinates] = useState(null);
   const [birthdate, setBirthdate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,12 +109,6 @@ export default function User_Form({ navigation, route }) {
             setFirstName(profile.firstName || "");
             setLastName(profile.lastName || "");
             setPhoneNumber(userData.phoneNumber || "09");
-            setAddress(profile.address || "");
-            
-            // Handle coordinates if available
-            if (profile.coordinates) {
-              setCoordinates(profile.coordinates);
-            }
             
             // Handle administrative location
             if (profile.administrativeLocation) {
@@ -184,12 +175,6 @@ export default function User_Form({ navigation, route }) {
       return;
     }
 
-    // Address is optional - users can skip if they don't want to provide location
-    // if (!address.trim()) {
-    //   Alert.alert("Error", "Address is required");
-    //   return;
-    // }
-
     // Birthdate validation - ensure it's not today's date (should be in the past)
     const today = new Date();
     if (birthdate >= today) {
@@ -221,14 +206,12 @@ export default function User_Form({ navigation, route }) {
           isAuth: true,
           phoneNumber: phoneNumber,
           profile: {
-            address: address || "", // Allow empty address
-            coordinates: coordinates, // Store precise GPS coordinates (can be null)
             birthdate: birthdate.toISOString().split('T')[0], // Format as YYYY-MM-DD
             firstName: firstName,
             lastName: lastName,
             role: "family_member", // Default role
             profilePhoto: "",
-            administrativeLocation: administrativeLocation // Store country, province, municipality, barangay
+            administrativeLocation: administrativeLocation // Store region, province, municipality, barangay
           },
           userId: user.uid,
           updatedAt: new Date().toLocaleString() // Track when profile was last updated
@@ -385,11 +368,11 @@ export default function User_Form({ navigation, route }) {
               styles={styles}
             />
 
-            <LocationPicker 
-              address={address}
-              setAddress={setAddress}
-              coordinates={coordinates}
-              setCoordinates={setCoordinates}
+            <BirthdatePicker 
+              birthdate={birthdate}
+              showDatePicker={showDatePicker}
+              showDatePickerHandler={showDatePickerHandler}
+              onDateChange={onDateChange}
               styles={styles}
             />
 
@@ -399,17 +382,6 @@ export default function User_Form({ navigation, route }) {
               initialProvince={administrativeLocation.province}
               initialCity={administrativeLocation.municipality}
               initialBarangay={administrativeLocation.barangay}
-              coordinates={coordinates}
-            />
-
-            {/* <LocationSettings styles={styles} /> */}
-
-            <BirthdatePicker 
-              birthdate={birthdate}
-              showDatePicker={showDatePicker}
-              showDatePickerHandler={showDatePickerHandler}
-              onDateChange={onDateChange}
-              styles={styles}
             />
 
             <InfoBox />
