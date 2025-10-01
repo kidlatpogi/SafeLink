@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import useOptimizedLocation from "../Components/useOptimizedLocation";
+import useLocation from "../Components/useLocation";
 import styles from "../Styles/EvacuationCenters.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
 
@@ -39,7 +39,7 @@ const centers = [
 
 export default function EvacuationCenters({ navigation }) {
   // Use optimized location with normal mode (balanced accuracy for navigation)
-  const { location, loading: locationLoading, error: locationError } = useOptimizedLocation({
+  const { location, loading: locationLoading, error: locationError } = useLocation({
     enableTracking: true,
     emergencyMode: false, // Normal mode for evacuation center routing
     onLocationUpdate: (newLocation) => {

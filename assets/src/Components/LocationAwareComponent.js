@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import useOptimizedLocation from './useOptimizedLocation';
+import useLocation from './useLocation';
 
 const LocationAwareComponent = ({ 
   children, 
@@ -19,7 +19,7 @@ const LocationAwareComponent = ({
     permissions, 
     refreshLocation, 
     isLocationFresh 
-  } = useOptimizedLocation({
+  } = useLocation({
     enableTracking,
     emergencyMode,
     onLocationUpdate

@@ -1,7 +1,7 @@
 // Components/useOptimizedLocation.js
 import { useState, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
-import OptimizedLocationService from './OptimizedLocationService';
+import LocationService from './LocationService';
 
 export const useOptimizedLocation = (options = {}) => {
   const {

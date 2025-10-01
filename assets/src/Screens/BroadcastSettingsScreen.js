@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,14 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { auth, db } from '../firebaseConfig';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import BroadcastSettings from '../Components/BroadcastSettings';
+import HamburgerMenu from '../Components/HamburgerMenu';
 
 const BroadcastSettingsScreen = ({ navigation }) => {
   const [broadcastSettings, setBroadcastSettings] = useState({
@@ -19,11 +22,32 @@ const BroadcastSettingsScreen = ({ navigation }) => {
     adminEnabled: true,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
+  
+  // Animation values for hamburger menu
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // Load existing settings on mount
   useEffect(() => {
     loadUserSettings();
   }, []);
+
+  const showMenu = () => {
+    setIsMenuVisible(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const loadUserSettings = async () => {
     try {
@@ -83,7 +107,7 @@ const BroadcastSettingsScreen = ({ navigation }) => {
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={32} color="#fff" />
         </TouchableOpacity>
         
         <View style={styles.headerCenter}>
@@ -91,7 +115,12 @@ const BroadcastSettingsScreen = ({ navigation }) => {
           <Text style={styles.headerSubtitle}>Configure your alert preferences</Text>
         </View>
         
-        <View style={styles.headerButton} />
+        <TouchableOpacity 
+          style={styles.headerButton}
+          onPress={showMenu}
+        >
+          <Ionicons name="menu" size={32} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -133,6 +162,14 @@ const BroadcastSettingsScreen = ({ navigation }) => {
           </Text>
         </View>
       </View>
+      
+      <HamburgerMenu 
+        menuVisible={isMenuVisible}
+        setMenuVisible={setIsMenuVisible}
+        slideAnim={slideAnim}
+        opacityAnim={opacityAnim}
+        navigation={navigation}
+      />
     </SafeAreaView>
   );
 };
@@ -147,7 +184,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FF6F00',
-    paddingTop: 10,
+    paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
     shadowColor: '#000',
@@ -162,8 +199,6 @@ const styles = StyleSheet.create({
   headerButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -173,7 +208,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#fff',
     fontFamily: 'Montserrat-VariableFont_wght',
   },

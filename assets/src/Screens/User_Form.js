@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -8,6 +8,8 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Animated,
+  Dimensions,
 } from "react-native";
 import { auth, db } from '../firebaseConfig';
 import { updateProfile } from "firebase/auth";
@@ -39,8 +41,6 @@ const enhancedStyles = StyleSheet.create({
   headerButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -60,8 +60,7 @@ const enhancedStyles = StyleSheet.create({
 import UserFormHeader from '../Components/UserFormHeader';
 import NameInputs from '../Components/NameInputs';
 import PhoneInput from '../Components/PhoneInput';
-import LocationPicker from '../Components/LocationPicker';
-import PhilippineLocationDropdown from '../Components/PhilippineLocationDropdown';
+import PhilippineAddressSelector from '../Components/PhilippineAddressSelector';
 import HamburgerMenu from '../Components/HamburgerMenu';
 // import LocationSettings from '../Components/LocationSettings'; // Temporarily disabled
 import BirthdatePicker from '../Components/BirthdatePicker';
@@ -72,8 +71,6 @@ export default function User_Form({ navigation, route }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("09");
-  const [address, setAddress] = useState("");
-  const [coordinates, setCoordinates] = useState(null);
   const [birthdate, setBirthdate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -81,9 +78,13 @@ export default function User_Form({ navigation, route }) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   
+  // Animation values for hamburger menu
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  
   // Administrative location state
   const [administrativeLocation, setAdministrativeLocation] = useState({
-    country: '',
+    region: '',
     province: '',
     municipality: '',
     barangay: ''
@@ -108,12 +109,6 @@ export default function User_Form({ navigation, route }) {
             setFirstName(profile.firstName || "");
             setLastName(profile.lastName || "");
             setPhoneNumber(userData.phoneNumber || "09");
-            setAddress(profile.address || "");
-            
-            // Handle coordinates if available
-            if (profile.coordinates) {
-              setCoordinates(profile.coordinates);
-            }
             
             // Handle administrative location
             if (profile.administrativeLocation) {
@@ -146,6 +141,22 @@ export default function User_Form({ navigation, route }) {
     checkExistingProfile();
   }, []);
 
+  const showMenu = () => {
+    setIsMenuVisible(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
   const handleSaveProfile = async () => {
     if (!firstName.trim() || !lastName.trim()) {
       Alert.alert("Error", "First name and last name are required");
@@ -163,12 +174,6 @@ export default function User_Form({ navigation, route }) {
       Alert.alert("Error", "Please enter a valid Philippine phone number (e.g., 09123456789)");
       return;
     }
-
-    // Address is optional - users can skip if they don't want to provide location
-    // if (!address.trim()) {
-    //   Alert.alert("Error", "Address is required");
-    //   return;
-    // }
 
     // Birthdate validation - ensure it's not today's date (should be in the past)
     const today = new Date();
@@ -201,14 +206,12 @@ export default function User_Form({ navigation, route }) {
           isAuth: true,
           phoneNumber: phoneNumber,
           profile: {
-            address: address || "", // Allow empty address
-            coordinates: coordinates, // Store precise GPS coordinates (can be null)
             birthdate: birthdate.toISOString().split('T')[0], // Format as YYYY-MM-DD
             firstName: firstName,
             lastName: lastName,
             role: "family_member", // Default role
             profilePhoto: "",
-            administrativeLocation: administrativeLocation // Store country, province, municipality, barangay
+            administrativeLocation: administrativeLocation // Store region, province, municipality, barangay
           },
           userId: user.uid,
           updatedAt: new Date().toLocaleString() // Track when profile was last updated
@@ -336,7 +339,7 @@ export default function User_Form({ navigation, route }) {
         
         <TouchableOpacity 
           style={enhancedStyles.headerButton}
-          onPress={() => setIsMenuVisible(true)}
+          onPress={showMenu}
         >
           <Ionicons name="menu" size={32} color="#fff" />
         </TouchableOpacity>
@@ -365,30 +368,20 @@ export default function User_Form({ navigation, route }) {
               styles={styles}
             />
 
-            <LocationPicker 
-              address={address}
-              setAddress={setAddress}
-              coordinates={coordinates}
-              setCoordinates={setCoordinates}
-              styles={styles}
-            />
-
-            <PhilippineLocationDropdown
-              onLocationChange={setAdministrativeLocation}
-              initialProvince={administrativeLocation.province}
-              initialCity={administrativeLocation.municipality}
-              initialBarangay={administrativeLocation.barangay}
-              coordinates={coordinates}
-            />
-
-            {/* <LocationSettings styles={styles} /> */}
-
             <BirthdatePicker 
               birthdate={birthdate}
               showDatePicker={showDatePicker}
               showDatePickerHandler={showDatePickerHandler}
               onDateChange={onDateChange}
               styles={styles}
+            />
+
+            <PhilippineAddressSelector
+              onLocationChange={setAdministrativeLocation}
+              initialRegion={administrativeLocation.region}
+              initialProvince={administrativeLocation.province}
+              initialCity={administrativeLocation.municipality}
+              initialBarangay={administrativeLocation.barangay}
             />
 
             <InfoBox />
@@ -406,8 +399,10 @@ export default function User_Form({ navigation, route }) {
       </KeyboardAvoidingView>
       
       <HamburgerMenu 
-        isVisible={isMenuVisible}
-        onClose={() => setIsMenuVisible(false)}
+        menuVisible={isMenuVisible}
+        setMenuVisible={setIsMenuVisible}
+        slideAnim={slideAnim}
+        opacityAnim={opacityAnim}
         navigation={navigation}
       />
     </View>
