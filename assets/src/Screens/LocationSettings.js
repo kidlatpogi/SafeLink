@@ -1,5 +1,5 @@
 // Screens/LocationSettings.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -8,11 +8,14 @@ import {
   TouchableOpacity, 
   ScrollView,
   KeyboardAvoidingView,
-  Platform 
+  Platform,
+  Animated,
+  Dimensions 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LocationService from '../Components/LocationService';
+import HamburgerMenu from '../Components/HamburgerMenu';
 import styles from '../Styles/Create_Account.styles'; // Reusing existing styles
 
 export default function LocationSettings({ navigation }) {
@@ -21,10 +24,31 @@ export default function LocationSettings({ navigation }) {
   const [hasForegroundPermission, setHasForegroundPermission] = useState(false);
   const [lastLocationUpdate, setLastLocationUpdate] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
+  
+  // Animation values for hamburger menu
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadLocationSettings();
   }, []);
+
+  const showMenu = () => {
+    setIsMenuVisible(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const loadLocationSettings = async () => {
     try {
@@ -233,7 +257,17 @@ export default function LocationSettings({ navigation }) {
           }}>
             Location Settings
           </Text>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity 
+            onPress={showMenu}
+            style={{
+              width: 40,
+              height: 40,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="menu" size={32} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -537,6 +571,14 @@ export default function LocationSettings({ navigation }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      
+      <HamburgerMenu 
+        menuVisible={isMenuVisible}
+        setMenuVisible={setIsMenuVisible}
+        slideAnim={slideAnim}
+        opacityAnim={opacityAnim}
+        navigation={navigation}
+      />
     </View>
   );
 }

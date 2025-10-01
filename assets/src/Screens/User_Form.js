@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -8,6 +8,8 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Animated,
+  Dimensions,
 } from "react-native";
 import { auth, db } from '../firebaseConfig';
 import { updateProfile } from "firebase/auth";
@@ -79,6 +81,10 @@ export default function User_Form({ navigation, route }) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   
+  // Animation values for hamburger menu
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  
   // Administrative location state
   const [administrativeLocation, setAdministrativeLocation] = useState({
     country: '',
@@ -143,6 +149,22 @@ export default function User_Form({ navigation, route }) {
 
     checkExistingProfile();
   }, []);
+
+  const showMenu = () => {
+    setIsMenuVisible(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const handleSaveProfile = async () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -334,7 +356,7 @@ export default function User_Form({ navigation, route }) {
         
         <TouchableOpacity 
           style={enhancedStyles.headerButton}
-          onPress={() => setIsMenuVisible(true)}
+          onPress={showMenu}
         >
           <Ionicons name="menu" size={32} color="#fff" />
         </TouchableOpacity>
@@ -404,8 +426,10 @@ export default function User_Form({ navigation, route }) {
       </KeyboardAvoidingView>
       
       <HamburgerMenu 
-        isVisible={isMenuVisible}
-        onClose={() => setIsMenuVisible(false)}
+        menuVisible={isMenuVisible}
+        setMenuVisible={setIsMenuVisible}
+        slideAnim={slideAnim}
+        opacityAnim={opacityAnim}
         navigation={navigation}
       />
     </View>

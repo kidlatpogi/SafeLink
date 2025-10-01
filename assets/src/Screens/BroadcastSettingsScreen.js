@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { auth, db } from '../firebaseConfig';
@@ -21,11 +23,31 @@ const BroadcastSettingsScreen = ({ navigation }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  
+  // Animation values for hamburger menu
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // Load existing settings on mount
   useEffect(() => {
     loadUserSettings();
   }, []);
+
+  const showMenu = () => {
+    setIsMenuVisible(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const loadUserSettings = async () => {
     try {
@@ -95,7 +117,7 @@ const BroadcastSettingsScreen = ({ navigation }) => {
         
         <TouchableOpacity 
           style={styles.headerButton}
-          onPress={() => setIsMenuVisible(true)}
+          onPress={showMenu}
         >
           <Ionicons name="menu" size={32} color="#fff" />
         </TouchableOpacity>
@@ -142,8 +164,10 @@ const BroadcastSettingsScreen = ({ navigation }) => {
       </View>
       
       <HamburgerMenu 
-        isVisible={isMenuVisible}
-        onClose={() => setIsMenuVisible(false)}
+        menuVisible={isMenuVisible}
+        setMenuVisible={setIsMenuVisible}
+        slideAnim={slideAnim}
+        opacityAnim={opacityAnim}
         navigation={navigation}
       />
     </SafeAreaView>
