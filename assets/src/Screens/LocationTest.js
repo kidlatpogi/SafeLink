@@ -11,7 +11,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import LocationService from '../Components/LocationService';
-import LocationService from '../Components/LocationService';
 import useLocation from '../Components/useLocation';
 
 const LocationTest = ({ navigation }) => {
