@@ -20,7 +20,7 @@ import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { db, auth } from "../firebaseConfig";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import * as Location from "expo-location";
-import useOptimizedLocation from "../Components/useOptimizedLocation";
+import useLocation from "../Components/useLocation";
 import HamburgerMenu from "../Components/HamburgerMenu";
 
 const { width, height } = Dimensions.get('window');
@@ -32,7 +32,7 @@ export default function EmergencyBroadcast({ navigation }) {
     loading: locationLoading, 
     error: locationError,
     refreshLocation 
-  } = useOptimizedLocation({
+  } = useLocation({
     enableTracking: true,
     emergencyMode: true,
   });

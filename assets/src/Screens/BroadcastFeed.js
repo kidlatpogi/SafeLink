@@ -17,7 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { collection, query, orderBy, onSnapshot, where, doc, getDoc } from "firebase/firestore";
 import * as Location from "expo-location";
 import { db, auth } from "../firebaseConfig";
-import useOptimizedLocation from "../Components/useOptimizedLocation";
+import useLocation from "../Components/useLocation";
 import { getBroadcastSettings } from "../Components/BroadcastSettings";
 import styles from "../Styles/BroadcastFeed.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
@@ -68,7 +68,7 @@ export default function BroadcastFeed({ navigation }) {
     loading: locationLoading, 
     error: locationError,
     refreshLocation 
-  } = useOptimizedLocation({
+  } = useLocation({
     enableTracking: false, // Just need current location for filtering
     onLocationUpdate: (newLocation) => {
       // Update location name when location changes

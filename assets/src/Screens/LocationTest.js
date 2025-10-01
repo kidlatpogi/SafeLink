@@ -11,8 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import LocationService from '../Components/LocationService';
-import OptimizedLocationService from '../Components/OptimizedLocationService';
-import useOptimizedLocation from '../Components/useOptimizedLocation';
+import LocationService from '../Components/LocationService';
+import useLocation from '../Components/useLocation';
 
 const LocationTest = ({ navigation }) => {
   // Use optimized location hook for testing
@@ -24,7 +24,7 @@ const LocationTest = ({ navigation }) => {
     refreshLocation, 
     getStats,
     isLocationFresh
-  } = useOptimizedLocation({
+  } = useLocation({
     enableTracking: true,
     emergencyMode: false
   });
@@ -133,31 +133,29 @@ const LocationTest = ({ navigation }) => {
         console.log(`❌ Background task registration failed:`, taskError.message);
       }
 
-      // Test 8: Test OptimizedLocationService
-      console.log('🧪 Testing OptimizedLocationService...');
+      // Test 8: Test LocationService
+      console.log('🧪 Testing LocationService...');
       try {
-        const optimizedLocation = await OptimizedLocationService.getCurrentLocation();
+        const location = await LocationService.getLastKnownLocation();
         results.optimizedLocationFetch = true;
-        results.optimizedLocationData = optimizedLocation;
-        console.log(`✅ OptimizedLocationService fetch successful:`, optimizedLocation);
+        results.optimizedLocationData = location;
+        console.log(`✅ LocationService fetch successful:`, location);
       } catch (optimizedError) {
         results.optimizedLocationFetch = false;
         results.optimizedError = optimizedError.message;
-        console.log(`❌ OptimizedLocationService fetch failed:`, optimizedError.message);
+        console.log(`❌ LocationService fetch failed:`, optimizedError.message);
       }
 
-      // Test 9: Test location mode switching
-      console.log('🧪 Testing location mode switching...');
+      // Test 9: Test location permissions
+      console.log('🧪 Testing location permissions...');
       try {
-        await OptimizedLocationService.setTrackingMode('EMERGENCY');
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a second
-        await OptimizedLocationService.setTrackingMode('NORMAL');
+        const permissions = await LocationService.requestLocationPermissions();
         results.modeSwitching = true;
-        console.log(`✅ Location mode switching successful`);
+        console.log(`✅ Location permissions check successful`, permissions);
       } catch (modeError) {
         results.modeSwitching = false;
         results.modeError = modeError.message;
-        console.log(`❌ Location mode switching failed:`, modeError.message);
+        console.log(`❌ Location permissions check failed:`, modeError.message);
       }
 
     } catch (error) {
@@ -283,7 +281,7 @@ const LocationTest = ({ navigation }) => {
             />
 
             <TestResult
-              title="OptimizedLocationService"
+              title="LocationService"
               status={testResults.optimizedLocationFetch}
               details={testResults.optimizedLocationFetch ? 
                 'Optimized service working correctly' : 
@@ -372,25 +370,25 @@ const LocationTest = ({ navigation }) => {
             <View style={styles.modeButtons}>
               <TouchableOpacity 
                 style={[styles.modeButton, { backgroundColor: '#28a745' }]}
-                onPress={() => OptimizedLocationService.setTrackingMode('NORMAL')}
+                onPress={() => console.log('Normal mode selected')}
               >
                 <Text style={styles.modeButtonText}>Normal</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.modeButton, { backgroundColor: '#ffc107' }]}
-                onPress={() => OptimizedLocationService.setTrackingMode('POWER_SAVE')}
+                onPress={() => console.log('Power Save mode selected')}
               >
                 <Text style={styles.modeButtonText}>Power Save</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.modeButton, { backgroundColor: '#dc3545' }]}
-                onPress={() => OptimizedLocationService.enableEmergencyMode()}
+                onPress={() => console.log('Emergency mode selected')}
               >
                 <Text style={styles.modeButtonText}>Emergency</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.modeButton, { backgroundColor: '#6c757d' }]}
-                onPress={() => OptimizedLocationService.setTrackingMode('STATIONARY')}
+                onPress={() => console.log('Stationary mode selected')}
               >
                 <Text style={styles.modeButtonText}>Stationary</Text>
               </TouchableOpacity>

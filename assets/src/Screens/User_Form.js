@@ -61,7 +61,7 @@ import UserFormHeader from '../Components/UserFormHeader';
 import NameInputs from '../Components/NameInputs';
 import PhoneInput from '../Components/PhoneInput';
 import LocationPicker from '../Components/LocationPicker';
-import PhilippineLocationDropdown from '../Components/PhilippineLocationDropdown';
+import PhilippineAddressSelector from '../Components/PhilippineAddressSelector';
 import HamburgerMenu from '../Components/HamburgerMenu';
 // import LocationSettings from '../Components/LocationSettings'; // Temporarily disabled
 import BirthdatePicker from '../Components/BirthdatePicker';
@@ -87,7 +87,7 @@ export default function User_Form({ navigation, route }) {
   
   // Administrative location state
   const [administrativeLocation, setAdministrativeLocation] = useState({
-    country: '',
+    region: '',
     province: '',
     municipality: '',
     barangay: ''
@@ -393,8 +393,9 @@ export default function User_Form({ navigation, route }) {
               styles={styles}
             />
 
-            <PhilippineLocationDropdown
+            <PhilippineAddressSelector
               onLocationChange={setAdministrativeLocation}
+              initialRegion={administrativeLocation.region}
               initialProvince={administrativeLocation.province}
               initialCity={administrativeLocation.municipality}
               initialBarangay={administrativeLocation.barangay}

@@ -94,8 +94,6 @@ const BroadcastSettings = ({
 
   return (
     <View style={enhancedStyles.container}>
-      <Text style={enhancedStyles.sectionTitle}>📡 Broadcast Alert Settings</Text>
-      
       {/* Location-Based Section */}
       <View style={enhancedStyles.section}>
         <Text style={enhancedStyles.subsectionTitle}>🗺️ Location-Based Alerts</Text>

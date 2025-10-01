@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useUser } from './UserContext';
 import { useFamily } from './FamilyContext';
-import useOptimizedLocation from './useOptimizedLocation';
+import useLocation from './useLocation';
 import styles from "../Styles/Home.styles";
 import EvacIcon from "../Images/map.png";
 
@@ -16,7 +16,7 @@ const HomeContent = ({ displayName, navigation }) => {
   const API_KEY = "c956f87c395021c41caf56aba8b6d870"; // OpenWeather API Key
 
   // Use optimized location hook with automatic tracking
-  const { location, loading: locationLoading, error: locationError } = useOptimizedLocation({
+  const { location, loading: locationLoading, error: locationError } = useLocation({
     enableTracking: true, // Enable background tracking
     onLocationUpdate: (newLocation) => {
       // Automatically update weather when location changes
