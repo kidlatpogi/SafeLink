@@ -39,8 +39,6 @@ const enhancedStyles = StyleSheet.create({
   headerButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
