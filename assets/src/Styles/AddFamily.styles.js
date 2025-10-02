@@ -365,6 +365,22 @@ export default StyleSheet.create({
   cancelRequestButtonText: {
     color: "#FF9800",
   },
+  adminIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E8",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#4CAF50",
+  },
+  adminIndicatorText: {
+    fontSize: 11,
+    color: "#4CAF50",
+    fontWeight: "600",
+    marginLeft: 4,
+  },
   
   // 🔹 Management Section
   managementSection: {

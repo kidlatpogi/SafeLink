@@ -80,6 +80,22 @@ export default function AddFamily({ navigation }) {
   // Set local family data from context or use local state
   const myFamilyCode = localFamilyCode || contextFamilyCode;
   const displayFamily = localFamily.length > 0 ? localFamily : (contextFamily || []);
+  
+  // Determine admin status from local family data
+  const currentUserMember = displayFamily.find(member => member.userId === userId);
+  const isLocalAdmin = currentUserMember?.isAdmin || false;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('AddFamily - Admin Status Debug:', {
+      userId,
+      contextIsAdmin: isAdmin,
+      localIsAdmin: isLocalAdmin,
+      currentUserMember,
+      myFamilyCode,
+      displayFamilyLength: displayFamily.length
+    });
+  }, [userId, isAdmin, isLocalAdmin, currentUserMember, myFamilyCode, displayFamily.length]);
 
   // Refresh family data
   const refreshFamilyData = async () => {
@@ -386,7 +402,7 @@ export default function AddFamily({ navigation }) {
 
   // Archive family (only family creator can do this)
   const archiveFamily = async () => {
-    if (!myFamilyCode || !isAdmin) {
+    if (!myFamilyCode || !isLocalAdmin) {
       Alert.alert("Error", "Only the family creator can archive the family.");
       return;
     }
@@ -428,7 +444,7 @@ export default function AddFamily({ navigation }) {
 
   // Kick family member (only admin can do this)
   const kickMember = async (memberToKick) => {
-    if (!isAdmin) {
+    if (!isLocalAdmin) {
       Alert.alert("Error", "Only family admin can remove members.");
       return;
     }
@@ -490,7 +506,7 @@ export default function AddFamily({ navigation }) {
 
   // Request removal from family (members can request to be removed)
   const requestRemoval = async () => {
-    if (isAdmin) {
+    if (isLocalAdmin) {
       Alert.alert("Info", "As the family admin, you can archive the entire family instead.");
       return;
     }
@@ -624,7 +640,7 @@ export default function AddFamily({ navigation }) {
                 <Ionicons name="people" size={20} color="#4CAF50" />
                 <Text style={styles.codeSectionTitle}>Your Family Code</Text>
               </View>
-              {isAdmin && (
+              {isLocalAdmin && (
                 <TouchableOpacity 
                   style={styles.settingsButton}
                   onPress={() => setManagementModalVisible(true)}
@@ -748,7 +764,7 @@ export default function AddFamily({ navigation }) {
                   </View>
                   
                   {/* Admin Actions */}
-                  {isAdmin && member.userId !== userId && (
+                  {isLocalAdmin && member.userId !== userId && (
                     <TouchableOpacity 
                       style={styles.kickButton}
                       onPress={() => openRemovalConfirmation(member)}
@@ -759,8 +775,8 @@ export default function AddFamily({ navigation }) {
                     </TouchableOpacity>
                   )}
                   
-                  {/* Member's own actions */}
-                  {member.userId === userId && !isAdmin && (
+                  {/* Member's own actions - only for non-admin members */}
+                  {member.userId === userId && !isLocalAdmin && (
                     <TouchableOpacity 
                       style={[styles.requestButton, member.removalRequested && styles.cancelRequestButton]}
                       onPress={member.removalRequested ? cancelRemovalRequest : requestRemoval}
@@ -775,6 +791,14 @@ export default function AddFamily({ navigation }) {
                         {member.removalRequested ? "Cancel Request" : "Request Removal"}
                       </Text>
                     </TouchableOpacity>
+                  )}
+                  
+                  {/* Admin's own member card - no actions needed */}
+                  {member.userId === userId && isLocalAdmin && (
+                    <View style={styles.adminIndicator}>
+                      <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
+                      <Text style={styles.adminIndicatorText}>Family Creator</Text>
+                    </View>
                   )}
                 </View>
               </View>
