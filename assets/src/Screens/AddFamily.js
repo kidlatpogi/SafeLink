@@ -8,6 +8,7 @@ import {
   Alert,
   Image,
   Animated,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from 'expo-clipboard';
@@ -46,6 +47,12 @@ export default function AddFamily({ navigation }) {
   // Local state for family data (since context doesn't provide setters)
   const [localFamily, setLocalFamily] = useState([]);
   const [localFamilyCode, setLocalFamilyCode] = useState("");
+
+  // Family Management Modal states
+  const [managementModalVisible, setManagementModalVisible] = useState(false);
+  const [confirmationText, setConfirmationText] = useState("");
+  const [actionType, setActionType] = useState(""); // "archive" or "remove"
+  const [memberToRemove, setMemberToRemove] = useState(null);
 
   // Hamburger menu state
   const [menuVisible, setMenuVisible] = useState(false);
@@ -339,36 +346,30 @@ export default function AddFamily({ navigation }) {
       return;
     }
 
-    Alert.alert(
-      "Archive Family",
-      "Are you sure you want to archive this family? This will make the family code unusable and all members will lose access.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Archive",
-          style: "destructive",
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const familyDocRef = doc(db, "families", myFamilyCode);
-              await updateDoc(familyDocRef, {
-                isArchived: true,
-                archivedAt: new Date().toISOString(),
-                archivedBy: userId
-              });
+    if (confirmationText !== "CONFIRM DELETE") {
+      Alert.alert("Error", "Please type 'CONFIRM DELETE' to proceed with archiving the family.");
+      return;
+    }
 
-              setLocalFamilyCode("");
-              setLocalFamily([]);
-              Alert.alert("Family Archived", "The family has been archived successfully.");
-            } catch (error) {
-              console.error("Error archiving family:", error);
-              Alert.alert("Error", "Failed to archive family. Please try again.");
-            }
-            setLoading(false);
-          }
-        }
-      ]
-    );
+    setLoading(true);
+    try {
+      const familyDocRef = doc(db, "families", myFamilyCode);
+      await updateDoc(familyDocRef, {
+        isArchived: true,
+        archivedAt: new Date().toISOString(),
+        archivedBy: userId
+      });
+
+      setLocalFamilyCode("");
+      setLocalFamily([]);
+      setManagementModalVisible(false);
+      setConfirmationText("");
+      Alert.alert("Family Archived", "The family has been archived successfully.");
+    } catch (error) {
+      console.error("Error archiving family:", error);
+      Alert.alert("Error", "Failed to archive family. Please try again.");
+    }
+    setLoading(false);
   };
 
   // Kick family member (only admin can do this)
@@ -383,35 +384,42 @@ export default function AddFamily({ navigation }) {
       return;
     }
 
-    Alert.alert(
-      "Remove Member",
-      `Are you sure you want to remove ${memberToKick.name} from the family?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const familyDocRef = doc(db, "families", myFamilyCode);
-              const updatedMembers = displayFamily.filter(member => member.userId !== memberToKick.userId);
-              
-              await updateDoc(familyDocRef, {
-                members: updatedMembers
-              });
+    if (confirmationText !== "CONFIRM REMOVAL") {
+      Alert.alert("Error", "Please type 'CONFIRM REMOVAL' to proceed with removing this member.");
+      return;
+    }
 
-              setLocalFamily(updatedMembers);
-              Alert.alert("Member Removed", `${memberToKick.name} has been removed from the family.`);
-            } catch (error) {
-              console.error("Error removing member:", error);
-              Alert.alert("Error", "Failed to remove member. Please try again.");
-            }
-            setLoading(false);
-          }
-        }
-      ]
-    );
+    setLoading(true);
+    try {
+      const familyDocRef = doc(db, "families", myFamilyCode);
+      const updatedMembers = displayFamily.filter(member => member.userId !== memberToKick.userId);
+      
+      await updateDoc(familyDocRef, {
+        members: updatedMembers
+      });
+
+      setLocalFamily(updatedMembers);
+      setMemberToRemove(null);
+      setConfirmationText("");
+      Alert.alert("Member Removed", `${memberToKick.name} has been removed from the family.`);
+    } catch (error) {
+      console.error("Error removing member:", error);
+      Alert.alert("Error", "Failed to remove member. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  // Open confirmation modal for member removal
+  const openRemovalConfirmation = (member) => {
+    setMemberToRemove(member);
+    setActionType("remove");
+    setConfirmationText("");
+  };
+
+  // Open confirmation modal for family archive
+  const openArchiveConfirmation = () => {
+    setActionType("archive");
+    setConfirmationText("");
   };
 
   // Request removal from family (members can request to be removed)
@@ -540,8 +548,23 @@ export default function AddFamily({ navigation }) {
         {myFamilyCode ? (
           <View style={styles.codeSection}>
             <View style={styles.codeSectionHeader}>
-              <Ionicons name="people" size={20} color="#4CAF50" />
-              <Text style={styles.codeSectionTitle}>Your Family Code</Text>
+              <View style={styles.codeSectionLeft}>
+                <Ionicons name="people" size={20} color="#4CAF50" />
+                <Text style={styles.codeSectionTitle}>Your Family Code</Text>
+              </View>
+              {isAdmin && (
+                <TouchableOpacity 
+                  style={styles.settingsButton}
+                  onPress={() => setManagementModalVisible(true)}
+                >
+                  <Ionicons name="settings" size={20} color="#666" />
+                  {getMembersWithRemovalRequests && getMembersWithRemovalRequests().length > 0 && (
+                    <View style={styles.notificationBadge}>
+                      <Text style={styles.notificationText}>{getMembersWithRemovalRequests().length}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
             <View style={styles.codeDisplay}>
               <Text style={styles.familyCodeText}>{myFamilyCode}</Text>
@@ -560,8 +583,10 @@ export default function AddFamily({ navigation }) {
         ) : (
           <View style={styles.codeSection}>
             <View style={styles.codeSectionHeader}>
-              <Ionicons name="add-circle" size={20} color="#FF9800" />
-              <Text style={styles.codeSectionTitle}>Create Family</Text>
+              <View style={styles.codeSectionLeft}>
+                <Ionicons name="add-circle" size={20} color="#FF9800" />
+                <Text style={styles.codeSectionTitle}>Create Family</Text>
+              </View>
             </View>
             <Text style={styles.codeInstructions}>
               Create a family and get a unique 6-digit code to share with your family members.
@@ -583,8 +608,10 @@ export default function AddFamily({ navigation }) {
         {!myFamilyCode && (
           <View style={styles.codeSection}>
             <View style={styles.codeSectionHeader}>
-              <Ionicons name="enter" size={20} color="#2196F3" />
-              <Text style={styles.codeSectionTitle}>Join Family</Text>
+              <View style={styles.codeSectionLeft}>
+                <Ionicons name="enter" size={20} color="#2196F3" />
+                <Text style={styles.codeSectionTitle}>Join Family</Text>
+              </View>
             </View>
             <Text style={styles.codeInstructions}>
               Enter the 6-digit family code shared by your family member.
@@ -614,8 +641,10 @@ export default function AddFamily({ navigation }) {
         {displayFamily.length > 0 && (
           <View style={styles.familyMembersSection}>
             <View style={styles.codeSectionHeader}>
-              <Ionicons name="people" size={20} color="#4CAF50" />
-              <Text style={styles.codeSectionTitle}>Family Members ({displayFamily.length})</Text>
+              <View style={styles.codeSectionLeft}>
+                <Ionicons name="people" size={20} color="#4CAF50" />
+                <Text style={styles.codeSectionTitle}>Family Members ({displayFamily.length})</Text>
+              </View>
             </View>
             {displayFamily.map((member, index) => (
               <View key={index} style={styles.memberCard}>
@@ -650,7 +679,7 @@ export default function AddFamily({ navigation }) {
                   {isAdmin && member.userId !== userId && (
                     <TouchableOpacity 
                       style={styles.kickButton}
-                      onPress={() => kickMember(member)}
+                      onPress={() => openRemovalConfirmation(member)}
                       disabled={loading}
                     >
                       <Ionicons name="person-remove" size={16} color="#F44336" />
@@ -680,56 +709,129 @@ export default function AddFamily({ navigation }) {
             ))}
           </View>
         )}
+      </ScrollView>
 
-        {/* Family Management Section - Only for Admins */}
-        {myFamilyCode && isAdmin && (
-          <View style={styles.managementSection}>
-            <View style={styles.codeSectionHeader}>
-              <Ionicons name="settings" size={20} color="#F44336" />
-              <Text style={styles.codeSectionTitle}>Family Management</Text>
+      {/* Family Management Modal */}
+      <Modal
+        visible={managementModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setManagementModalVisible(false);
+          setConfirmationText("");
+          setActionType("");
+          setMemberToRemove(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Family Management</Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setManagementModalVisible(false);
+                  setConfirmationText("");
+                  setActionType("");
+                  setMemberToRemove(null);
+                }}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
             </View>
             
-            {/* Pending Removal Requests */}
-            {getMembersWithRemovalRequests && getMembersWithRemovalRequests().length > 0 && (
-              <View style={styles.removalRequestsSection}>
-                <Text style={styles.removalRequestsTitle}>
-                  ⚠️ Pending Removal Requests ({getMembersWithRemovalRequests().length})
-                </Text>
-                {getMembersWithRemovalRequests().map((member, index) => (
-                  <View key={index} style={styles.removalRequestCard}>
-                    <View style={styles.requestMemberInfo}>
-                      <Ionicons name="person-circle" size={24} color="#F44336" />
-                      <Text style={styles.requestMemberName}>{member.name}</Text>
+            <ScrollView style={styles.modalBody}>
+              {/* Pending Removal Requests */}
+              {getMembersWithRemovalRequests && getMembersWithRemovalRequests().length > 0 && (
+                <View style={styles.removalRequestsSection}>
+                  <Text style={styles.removalRequestsTitle}>
+                    ⚠️ Pending Removal Requests ({getMembersWithRemovalRequests().length})
+                  </Text>
+                  {getMembersWithRemovalRequests().map((member, index) => (
+                    <View key={index} style={styles.removalRequestCard}>
+                      <View style={styles.requestMemberInfo}>
+                        <Ionicons name="person-circle" size={24} color="#F44336" />
+                        <Text style={styles.requestMemberName}>{member.name}</Text>
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.approveRemovalButton}
+                        onPress={() => openRemovalConfirmation(member)}
+                        disabled={loading}
+                      >
+                        <Ionicons name="checkmark" size={16} color="white" />
+                        <Text style={styles.approveRemovalText}>Approve</Text>
+                      </TouchableOpacity>
                     </View>
+                  ))}
+                </View>
+              )}
+              
+              {/* Archive Family Section */}
+              <View style={styles.archiveSection}>
+                <Text style={styles.archiveSectionTitle}>🗄️ Archive Family</Text>
+                <Text style={styles.archiveSectionDescription}>
+                  Archiving will make the family code unusable and remove all members' access. This action cannot be undone.
+                </Text>
+                <TouchableOpacity 
+                  style={[styles.archiveButton, loading && styles.disabledButton]}
+                  onPress={openArchiveConfirmation}
+                  disabled={loading}
+                >
+                  <Ionicons name="archive" size={20} color="white" />
+                  <Text style={styles.archiveButtonText}>Archive Family</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {/* Confirmation Section */}
+              {(actionType === "archive" || actionType === "remove") && (
+                <View style={styles.confirmationSection}>
+                  <Text style={styles.confirmationTitle}>
+                    {actionType === "archive" ? "🔒 Security Confirmation" : `🔒 Remove ${memberToRemove?.name}`}
+                  </Text>
+                  <Text style={styles.confirmationInstructions}>
+                    To proceed, please type "{actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL"}" below:
+                  </Text>
+                  <TextInput
+                    style={styles.confirmationInput}
+                    placeholder={actionType === "archive" ? "Type: CONFIRM DELETE" : "Type: CONFIRM REMOVAL"}
+                    value={confirmationText}
+                    onChangeText={setConfirmationText}
+                    autoCapitalize="characters"
+                    placeholderTextColor="#999"
+                  />
+                  <View style={styles.confirmationButtons}>
                     <TouchableOpacity 
-                      style={styles.approveRemovalButton}
-                      onPress={() => kickMember(member)}
-                      disabled={loading}
+                      style={styles.cancelConfirmButton}
+                      onPress={() => {
+                        setActionType("");
+                        setConfirmationText("");
+                        setMemberToRemove(null);
+                      }}
                     >
-                      <Ionicons name="checkmark" size={16} color="white" />
-                      <Text style={styles.approveRemovalText}>Approve</Text>
+                      <Text style={styles.cancelConfirmText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[
+                        styles.proceedButton, 
+                        (confirmationText !== (actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL")) && styles.disabledButton
+                      ]}
+                      onPress={actionType === "archive" ? archiveFamily : () => kickMember(memberToRemove)}
+                      disabled={
+                        loading || 
+                        confirmationText !== (actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL")
+                      }
+                    >
+                      <Text style={styles.proceedButtonText}>
+                        {loading ? "Processing..." : (actionType === "archive" ? "Archive" : "Remove")}
+                      </Text>
                     </TouchableOpacity>
                   </View>
-                ))}
-              </View>
-            )}
-            
-            <TouchableOpacity 
-              style={[styles.archiveButton, loading && styles.disabledButton]}
-              onPress={archiveFamily}
-              disabled={loading}
-            >
-              <Ionicons name="archive" size={20} color="white" />
-              <Text style={styles.archiveButtonText}>
-                {loading ? "Archiving..." : "Archive Family"}
-              </Text>
-            </TouchableOpacity>
-            <Text style={styles.archiveWarning}>
-              ⚠️ Archiving will make the family code unusable and remove all members' access. This action cannot be undone.
-            </Text>
+                </View>
+              )}
+            </ScrollView>
           </View>
-        )}
-      </ScrollView>
+        </View>
+      </Modal>
 
       {/* Hamburger Menu */}
       <HamburgerMenu

@@ -112,7 +112,36 @@ export default StyleSheet.create({
   codeSectionHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 12,
+  },
+  codeSectionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F5",
+    position: "relative",
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "#F44336",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "white",
+  },
+  notificationText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
   },
   codeSectionTitle: {
     fontSize: 18,
@@ -418,5 +447,131 @@ export default StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
     marginTop: 4,
+  },
+  
+  // 🔹 Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    width: "100%",
+    maxHeight: "80%",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  
+  // 🔹 Archive Section in Modal
+  archiveSection: {
+    backgroundColor: "#FFEBEE",
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
+  },
+  archiveSectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#D32F2F",
+    marginBottom: 8,
+  },
+  archiveSectionDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  
+  // 🔹 Confirmation Section
+  confirmationSection: {
+    backgroundColor: "#FFF3E0",
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 2,
+    borderColor: "#FF9800",
+  },
+  confirmationTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#E65100",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  confirmationInstructions: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 12,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  confirmationInput: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: "white",
+    marginBottom: 16,
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  confirmationButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  cancelConfirmButton: {
+    flex: 1,
+    backgroundColor: "#E0E0E0",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancelConfirmText: {
+    color: "#666",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  proceedButton: {
+    flex: 1,
+    backgroundColor: "#F44336",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  proceedButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
