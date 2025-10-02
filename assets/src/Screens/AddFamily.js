@@ -411,10 +411,14 @@ export default function AddFamily({ navigation }) {
       setConfirmationText("");
       setActionType("");
       
-      // Refresh family data
+      // Clear local family state immediately
+      setLocalFamilyCode("");
+      setLocalFamily([]);
+      
+      // Refresh family data to sync with context
       await refreshFamilyData();
       
-      Alert.alert("Family Archived", "The family has been archived successfully.");
+      Alert.alert("Family Archived", "The family has been archived successfully. You can now create or join a new family.");
     } catch (error) {
       console.error("Error archiving family:", error);
       Alert.alert("Error", "Failed to archive family. Please try again.");
@@ -455,7 +459,10 @@ export default function AddFamily({ navigation }) {
       setConfirmationText("");
       setActionType("");
       
-      // Refresh family data
+      // Update local family state immediately
+      setLocalFamily(updatedMembers);
+      
+      // Refresh family data to sync with context
       await refreshFamilyData();
       
       Alert.alert("Member Removed", `${memberToKick.name} has been removed from the family.`);
@@ -514,6 +521,9 @@ export default function AddFamily({ navigation }) {
                 members: updatedMembers
               });
 
+              // Update local state immediately
+              setLocalFamily(updatedMembers);
+
               await refreshFamilyData();
               Alert.alert("Request Sent", "Your removal request has been sent to the family admin.");
             } catch (error) {
@@ -546,6 +556,9 @@ export default function AddFamily({ navigation }) {
       await updateDoc(familyDocRef, {
         members: updatedMembers
       });
+
+      // Update local state immediately
+      setLocalFamily(updatedMembers);
 
       await refreshFamilyData();
       Alert.alert("Request Cancelled", "Your removal request has been cancelled.");
