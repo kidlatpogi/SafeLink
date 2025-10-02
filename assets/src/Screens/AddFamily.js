@@ -12,17 +12,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from 'expo-clipboard';
-import { db, auth } from "../firebaseConfig";
+import { db } from "../firebaseConfig";
 import { 
   collection, 
-  addDoc, 
   setDoc,
   getDocs, 
   doc, 
   getDoc, 
-  updateDoc, 
-  query, 
-  where
+  updateDoc
 } from "firebase/firestore";
 import { useUser } from '../Components/UserContext';
 import { useFamily } from '../Components/FamilyContext';
@@ -84,18 +81,6 @@ export default function AddFamily({ navigation }) {
   // Determine admin status from local family data
   const currentUserMember = displayFamily.find(member => member.userId === userId);
   const isLocalAdmin = currentUserMember?.isAdmin || false;
-  
-  // Debug logging
-  useEffect(() => {
-    console.log('AddFamily - Admin Status Debug:', {
-      userId,
-      contextIsAdmin: isAdmin,
-      localIsAdmin: isLocalAdmin,
-      currentUserMember,
-      myFamilyCode,
-      displayFamilyLength: displayFamily.length
-    });
-  }, [userId, isAdmin, isLocalAdmin, currentUserMember, myFamilyCode, displayFamily.length]);
 
   // Refresh family data
   const refreshFamilyData = async () => {
@@ -137,11 +122,7 @@ export default function AddFamily({ navigation }) {
 
   // Sync context data with local state
   useEffect(() => {
-    console.log('AddFamily - Context sync:', { contextFamilyCode, contextFamily: contextFamily?.length, localFamilyCode, localFamily: localFamily.length });
-    
-    if (contextFamilyCode && !localFamilyCode) {
-      setLocalFamilyCode(contextFamilyCode);
-    }
+    if (contextFamilyCode && !localFamilyCode) setLocalFamilyCode(contextFamilyCode);
     if (contextFamily && Array.isArray(contextFamily) && contextFamily.length > 0 && localFamily.length === 0) {
       setLocalFamily(contextFamily);
     }
@@ -195,8 +176,6 @@ export default function AddFamily({ navigation }) {
 
   // Create new family with unique code
   const createFamily = async () => {
-    console.log('CreateFamily - Starting with:', { userId, userEmail, userDisplayName, myFamilyCode });
-    
     if (!userId || !userEmail || !userDisplayName) {
       Alert.alert("Error", "User information not available.");
       return;
@@ -210,30 +189,24 @@ export default function AddFamily({ navigation }) {
     setLoading(true);
     
     try {
-      console.log('CreateFamily - Generating unique code...');
       let isUnique = false;
       let newCode = "";
       
       // Generate unique code
       while (!isUnique) {
         newCode = generateFamilyCode();
-        // Check if document with this code already exists (including archived families)
         const familyDocRef = doc(db, "families", newCode);
         const familyDocSnap = await getDoc(familyDocRef);
         
         if (!familyDocSnap.exists()) {
           isUnique = true;
         } else {
-          // If family exists but is archived, we can't reuse the code
           const existingFamily = familyDocSnap.data();
           if (existingFamily.isArchived) {
-            console.log('CreateFamily - Code already used by archived family:', newCode);
-            // Continue loop to generate new code
+            // Continue loop to generate new code for archived families
           }
         }
       }
-
-      console.log('CreateFamily - Generated unique code:', newCode);
 
       // Create new family document with family code as document ID
       const familyData = {
@@ -256,15 +229,11 @@ export default function AddFamily({ navigation }) {
         }]
       };
 
-      console.log('CreateFamily - Creating family document with ID:', newCode);
       const familyDocRef = doc(db, "families", newCode);
       await setDoc(familyDocRef, familyData);
       
-      console.log('CreateFamily - Family created successfully');
       setLocalFamilyCode(newCode);
       setLocalFamily(familyData.members);
-      
-      // Refresh family data for real-time updates
       await refreshFamilyData();
       
       Alert.alert(
@@ -285,8 +254,6 @@ export default function AddFamily({ navigation }) {
 
   // Join existing family using code
   const joinFamily = async () => {
-    console.log('JoinFamily - Starting with:', { joinCode, userId, userEmail, userDisplayName, myFamilyCode });
-    
     if (!joinCode.trim()) {
       Alert.alert("Error", "Please enter a family code.");
       return;
@@ -310,13 +277,10 @@ export default function AddFamily({ navigation }) {
     setLoading(true);
 
     try {
-      console.log('JoinFamily - Searching for family with code:', joinCode.trim());
-      // Get family document directly using the family code as document ID
       const familyDocRef = doc(db, "families", joinCode.trim());
       const familyDocSnap = await getDoc(familyDocRef);
 
       if (!familyDocSnap.exists()) {
-        console.log('JoinFamily - No family found with code:', joinCode.trim());
         Alert.alert("Error", "Invalid family code. Please check and try again.");
         setLoading(false);
         return;
@@ -324,28 +288,19 @@ export default function AddFamily({ navigation }) {
 
       const familyData = familyDocSnap.data();
       
-      // Check if family is archived
       if (familyData.isArchived) {
-        console.log('JoinFamily - Family is archived:', joinCode.trim());
         Alert.alert("Error", "This family is no longer active. Please contact the family admin for a new code.");
         setLoading(false);
         return;
       }
       
-      console.log('JoinFamily - Found family:', familyData);
-      
-      // Ensure members is an array
       if (!familyData.members || !Array.isArray(familyData.members)) {
-        console.log('JoinFamily - Invalid family data structure');
         Alert.alert("Error", "Invalid family data structure. Please contact support.");
         setLoading(false);
         return;
       }
       
-      // Check if user is already a member
-      const isAlreadyMember = familyData.members.some(member => member.userId === userId);
-      if (isAlreadyMember) {
-        console.log('JoinFamily - User already a member');
+      if (familyData.members.some(member => member.userId === userId)) {
         Alert.alert("Info", "You're already a member of this family.");
         setLoading(false);
         return;
@@ -366,18 +321,11 @@ export default function AddFamily({ navigation }) {
 
       const updatedMembers = [...familyData.members, newMember];
       
-      console.log('JoinFamily - Updating family with new member:', { newMember, updatedMembers });
+      await updateDoc(familyDocRef, { members: updatedMembers });
 
-      await updateDoc(familyDocRef, {
-        members: updatedMembers
-      });
-
-      console.log('JoinFamily - Successfully joined family');
       setLocalFamilyCode(joinCode.trim());
       setLocalFamily(updatedMembers);
       setJoinCode("");
-
-      // Refresh family data for real-time updates
       await refreshFamilyData();
 
       Alert.alert("Joined Family!", "You've successfully joined the family.");
@@ -414,24 +362,19 @@ export default function AddFamily({ navigation }) {
 
     setLoading(true);
     try {
-      const familyDocRef = doc(db, "families", myFamilyCode);
-      await updateDoc(familyDocRef, {
+      await updateDoc(doc(db, "families", myFamilyCode), {
         isArchived: true,
         archivedAt: new Date().toISOString(),
         archivedBy: userId
       });
 
-      // Close modals and reset state
+      // Reset state and refresh
       setManagementModalVisible(false);
       setConfirmationModalVisible(false);
       setConfirmationText("");
       setActionType("");
-      
-      // Clear local family state immediately
       setLocalFamilyCode("");
       setLocalFamily([]);
-      
-      // Refresh family data to sync with context
       await refreshFamilyData();
       
       Alert.alert("Family Archived", "The family has been archived successfully. You can now create or join a new family.");
@@ -461,24 +404,17 @@ export default function AddFamily({ navigation }) {
 
     setLoading(true);
     try {
-      const familyDocRef = doc(db, "families", myFamilyCode);
       const updatedMembers = displayFamily.filter(member => member.userId !== memberToKick.userId);
       
-      await updateDoc(familyDocRef, {
-        members: updatedMembers
-      });
+      await updateDoc(doc(db, "families", myFamilyCode), { members: updatedMembers });
 
-      // Close modals and reset state
+      // Reset state and refresh
       setConfirmationModalVisible(false);
       setManagementModalVisible(false);
       setMemberToRemove(null);
       setConfirmationText("");
       setActionType("");
-      
-      // Update local family state immediately
       setLocalFamily(updatedMembers);
-      
-      // Refresh family data to sync with context
       await refreshFamilyData();
       
       Alert.alert("Member Removed", `${memberToKick.name} has been removed from the family.`);
@@ -504,85 +440,54 @@ export default function AddFamily({ navigation }) {
     setConfirmationModalVisible(true);
   };
 
-  // Request removal from family (members can request to be removed)
-  const requestRemoval = async () => {
+  // Handle removal requests (request or cancel)
+  const handleRemovalRequest = async (isCancel = false) => {
     if (isLocalAdmin) {
       Alert.alert("Info", "As the family admin, you can archive the entire family instead.");
       return;
     }
 
-    Alert.alert(
-      "Request Removal",
-      "Are you sure you want to request removal from this family? The family admin will be notified.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Request",
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const familyDocRef = doc(db, "families", myFamilyCode);
-              const updatedMembers = displayFamily.map(member => {
-                if (member.userId === userId) {
-                  return {
-                    ...member,
-                    removalRequested: true,
-                    removalRequestedAt: new Date().toISOString()
-                  };
-                }
-                return member;
-              });
-              
-              await updateDoc(familyDocRef, {
-                members: updatedMembers
-              });
+    const action = isCancel ? "Cancel Request" : "Request Removal";
+    const message = isCancel 
+      ? "Are you sure you want to cancel your removal request?"
+      : "Are you sure you want to request removal from this family? The family admin will be notified.";
 
-              // Update local state immediately
-              setLocalFamily(updatedMembers);
-
-              await refreshFamilyData();
-              Alert.alert("Request Sent", "Your removal request has been sent to the family admin.");
-            } catch (error) {
-              console.error("Error requesting removal:", error);
-              Alert.alert("Error", "Failed to send removal request. Please try again.");
-            }
-            setLoading(false);
+    Alert.alert(action, message, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: isCancel ? "Cancel Request" : "Request",
+        onPress: async () => {
+          setLoading(true);
+          try {
+            const updatedMembers = displayFamily.map(member => {
+              if (member.userId === userId) {
+                return {
+                  ...member,
+                  removalRequested: !isCancel,
+                  removalRequestedAt: isCancel ? null : new Date().toISOString()
+                };
+              }
+              return member;
+            });
+            
+            await updateDoc(doc(db, "families", myFamilyCode), { members: updatedMembers });
+            setLocalFamily(updatedMembers);
+            await refreshFamilyData();
+            
+            Alert.alert(
+              isCancel ? "Request Cancelled" : "Request Sent", 
+              isCancel 
+                ? "Your removal request has been cancelled."
+                : "Your removal request has been sent to the family admin."
+            );
+          } catch (error) {
+            console.error(`Error handling removal request:`, error);
+            Alert.alert("Error", `Failed to ${isCancel ? 'cancel' : 'send'} removal request. Please try again.`);
           }
+          setLoading(false);
         }
-      ]
-    );
-  };
-
-  // Cancel removal request
-  const cancelRemovalRequest = async () => {
-    setLoading(true);
-    try {
-      const familyDocRef = doc(db, "families", myFamilyCode);
-      const updatedMembers = displayFamily.map(member => {
-        if (member.userId === userId) {
-          return {
-            ...member,
-            removalRequested: false,
-            removalRequestedAt: null
-          };
-        }
-        return member;
-      });
-      
-      await updateDoc(familyDocRef, {
-        members: updatedMembers
-      });
-
-      // Update local state immediately
-      setLocalFamily(updatedMembers);
-
-      await refreshFamilyData();
-      Alert.alert("Request Cancelled", "Your removal request has been cancelled.");
-    } catch (error) {
-      console.error("Error cancelling removal request:", error);
-      Alert.alert("Error", "Failed to cancel removal request. Please try again.");
-    }
-    setLoading(false);
+      }
+    ]);
   };
 
   // Get appropriate status color
@@ -745,7 +650,7 @@ export default function AddFamily({ navigation }) {
                       {member.isAdmin && (
                         <View style={styles.adminBadge}>
                           <Ionicons name="star" size={12} color="#FF9800" />
-                          <Text style={styles.adminText}>Admin</Text>
+                          <Text style={styles.adminText}>Family Creator</Text>
                         </View>
                       )}
                       {member.removalRequested && (
@@ -779,7 +684,7 @@ export default function AddFamily({ navigation }) {
                   {member.userId === userId && !isLocalAdmin && (
                     <TouchableOpacity 
                       style={[styles.requestButton, member.removalRequested && styles.cancelRequestButton]}
-                      onPress={member.removalRequested ? cancelRemovalRequest : requestRemoval}
+                      onPress={() => handleRemovalRequest(member.removalRequested)}
                       disabled={loading}
                     >
                       <Ionicons 
