@@ -9,9 +9,11 @@ import {
   Share,
   Animated,
   SafeAreaView,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import styles from "../Styles/Go_Bag.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
 import HamburgerMenu from "../Components/HamburgerMenu";
@@ -55,6 +57,8 @@ export default function Go_Bag({ navigation }) {
 
   const [checkedItems, setCheckedItems] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [locationPhoto, setLocationPhoto] = useState(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({
     essentials: true,
     documents: true,
@@ -73,20 +77,21 @@ export default function Go_Bag({ navigation }) {
     loadSavedProgress();
   }, []);
 
-  // Save progress automatically when checkedItems changes
+  // Save progress automatically when checkedItems or locationPhoto changes
   useEffect(() => {
-    if (checkedItems.length > 0 || lastUpdated) {
+    if (checkedItems.length > 0 || lastUpdated || locationPhoto) {
       saveProgress();
     }
-  }, [checkedItems]);
+  }, [checkedItems, locationPhoto]);
 
   const loadSavedProgress = async () => {
     try {
       const savedData = await AsyncStorage.getItem('goBagChecklist');
       if (savedData) {
-        const { checkedItems: saved, lastUpdated: savedDate } = JSON.parse(savedData);
+        const { checkedItems: saved, lastUpdated: savedDate, locationPhoto: savedPhoto } = JSON.parse(savedData);
         setCheckedItems(saved || []);
         setLastUpdated(savedDate);
+        setLocationPhoto(savedPhoto || null);
       }
     } catch (error) {
       console.error('Error loading saved progress:', error);
@@ -98,6 +103,7 @@ export default function Go_Bag({ navigation }) {
       const dataToSave = {
         checkedItems,
         lastUpdated: new Date().toISOString(),
+        locationPhoto,
       };
       await AsyncStorage.setItem('goBagChecklist', JSON.stringify(dataToSave));
       setLastUpdated(new Date().toISOString());
@@ -177,8 +183,99 @@ export default function Go_Bag({ navigation }) {
           style: 'destructive',
           onPress: () => {
             setCheckedItems([]);
+            setLocationPhoto(null);
             AsyncStorage.removeItem('goBagChecklist');
           }
+        }
+      ]
+    );
+  };
+
+  // Photo management functions
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Camera Permission Required',
+        'Please allow camera access to take a photo of your go-bag location.',
+        [{ text: 'OK' }]
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const takePhoto = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7, // Compress to save storage
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setLocationPhoto(result.assets[0].uri);
+        Alert.alert(
+          '📸 Photo Added!',
+          'Your go-bag location photo has been saved locally on your device.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  const chooseFromGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setLocationPhoto(result.assets[0].uri);
+        Alert.alert(
+          '📸 Photo Added!',
+          'Your go-bag location photo has been saved locally on your device.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error choosing photo:', error);
+      Alert.alert('Error', 'Failed to select photo. Please try again.');
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert(
+      '📸 Add Location Photo',
+      'Help you and your family quickly find your go-bag during emergencies.\n\n🔒 Privacy: Photo stored locally on your device only.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Take Photo', onPress: takePhoto },
+        { text: 'Choose from Gallery', onPress: chooseFromGallery },
+      ]
+    );
+  };
+
+  const removePhoto = () => {
+    Alert.alert(
+      'Remove Photo',
+      'Are you sure you want to remove the location photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Remove', 
+          style: 'destructive',
+          onPress: () => setLocationPhoto(null)
         }
       ]
     );
@@ -289,6 +386,53 @@ Generated by SafeLink Emergency App 🚨`;
             Last updated: {new Date(lastUpdated).toLocaleDateString()}
           </Text>
         )}
+
+        {/* Location Photo Section */}
+        <View style={styles.photoSection}>
+          <View style={styles.photoHeader}>
+            <Ionicons name="camera" size={16} color="#2196F3" />
+            <Text style={styles.photoHeaderText}>Go-Bag Location (Optional)</Text>
+          </View>
+          
+          {locationPhoto ? (
+            <View style={styles.photoContainer}>
+              <TouchableOpacity 
+                style={styles.photoThumbnail}
+                onPress={() => setShowPhotoModal(true)}
+              >
+                <Image source={{ uri: locationPhoto }} style={styles.photoImage} />
+                <View style={styles.photoOverlay}>
+                  <Ionicons name="expand" size={16} color="white" />
+                </View>
+              </TouchableOpacity>
+              <View style={styles.photoActions}>
+                <TouchableOpacity style={styles.changePhotoButton} onPress={showPhotoOptions}>
+                  <Ionicons name="camera" size={14} color="#2196F3" />
+                  <Text style={styles.changePhotoText}>Change</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.removePhotoButton} onPress={removePhoto}>
+                  <Ionicons name="trash" size={14} color="#F44336" />
+                  <Text style={styles.removePhotoText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.addPhotoButton} onPress={showPhotoOptions}>
+              <View style={styles.addPhotoIcon}>
+                <Ionicons name="camera-outline" size={24} color="#2196F3" />
+              </View>
+              <View style={styles.addPhotoContent}>
+                <Text style={styles.addPhotoTitle}>Add location photo</Text>
+                <Text style={styles.addPhotoSubtitle}>Help family find your emergency supplies quickly</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#999" />
+            </TouchableOpacity>
+          )}
+          
+          <Text style={styles.privacyText}>
+            🔒 Photos stored locally on your device only
+          </Text>
+        </View>
       </View>
 
       {/* Action Buttons */}
@@ -392,6 +536,56 @@ Generated by SafeLink Emergency App 🚨`;
           <Text style={styles.tipText}>• Test flashlights and radios regularly</Text>
         </View>
       </ScrollView>
+
+      {/* Photo Modal */}
+      <Modal
+        visible={showPhotoModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPhotoModal(false)}
+      >
+        <View style={styles.photoModalOverlay}>
+          <View style={styles.photoModalContent}>
+            <View style={styles.photoModalHeader}>
+              <Text style={styles.photoModalTitle}>Go-Bag Location</Text>
+              <TouchableOpacity 
+                style={styles.photoModalClose}
+                onPress={() => setShowPhotoModal(false)}
+              >
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            {locationPhoto && (
+              <Image source={{ uri: locationPhoto }} style={styles.photoModalImage} />
+            )}
+            
+            <View style={styles.photoModalActions}>
+              <TouchableOpacity 
+                style={styles.photoModalButton} 
+                onPress={() => {
+                  setShowPhotoModal(false);
+                  showPhotoOptions();
+                }}
+              >
+                <Ionicons name="camera" size={20} color="#2196F3" />
+                <Text style={styles.photoModalButtonText}>Change Photo</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.photoModalButton, styles.photoModalRemoveButton]} 
+                onPress={() => {
+                  setShowPhotoModal(false);
+                  removePhoto();
+                }}
+              >
+                <Ionicons name="trash" size={20} color="#F44336" />
+                <Text style={[styles.photoModalButtonText, styles.photoModalRemoveText]}>Remove Photo</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Hamburger Menu */}
       <HamburgerMenu
