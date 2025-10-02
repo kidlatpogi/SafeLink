@@ -15,6 +15,7 @@ import { db, auth } from "../firebaseConfig";
 import { 
   collection, 
   addDoc, 
+  setDoc,
   getDocs, 
   doc, 
   getDoc, 
@@ -78,12 +79,14 @@ export default function AddFamily({ navigation }) {
   }, [contextFamilyCode, contextFamily]);
 
   // Fetch current family and check if user has existing family code
+  // Note: This supports both new structure (family code as doc ID) and legacy structure (random doc IDs)
   useEffect(() => {
     if (!userId) return;
     
     const fetchFamilyData = async () => {
       try {
         // Check if user is part of any family by searching through all families
+        // This approach works for both new and legacy family documents
         const familiesRef = collection(db, "families");
         const querySnapshot = await getDocs(familiesRef);
         
@@ -139,18 +142,18 @@ export default function AddFamily({ navigation }) {
       // Generate unique code
       while (!isUnique) {
         newCode = generateFamilyCode();
-        const familiesRef = collection(db, "families");
-        const q = query(familiesRef, where("code", "==", newCode));
-        const querySnapshot = await getDocs(q);
+        // Check if document with this code already exists
+        const familyDocRef = doc(db, "families", newCode);
+        const familyDocSnap = await getDoc(familyDocRef);
         
-        if (querySnapshot.empty) {
+        if (!familyDocSnap.exists()) {
           isUnique = true;
         }
       }
 
       console.log('CreateFamily - Generated unique code:', newCode);
 
-      // Create new family document
+      // Create new family document with family code as document ID
       const familyData = {
         code: newCode,
         createdAt: new Date().toISOString(),
@@ -166,8 +169,9 @@ export default function AddFamily({ navigation }) {
         }]
       };
 
-      console.log('CreateFamily - Creating family document:', familyData);
-      await addDoc(collection(db, "families"), familyData);
+      console.log('CreateFamily - Creating family document with ID:', newCode);
+      const familyDocRef = doc(db, "families", newCode);
+      await setDoc(familyDocRef, familyData);
       
       console.log('CreateFamily - Family created successfully');
       setLocalFamilyCode(newCode);
@@ -217,20 +221,18 @@ export default function AddFamily({ navigation }) {
 
     try {
       console.log('JoinFamily - Searching for family with code:', joinCode.trim());
-      // Find family with the code
-      const familiesRef = collection(db, "families");
-      const q = query(familiesRef, where("code", "==", joinCode.trim()));
-      const querySnapshot = await getDocs(q);
+      // Get family document directly using the family code as document ID
+      const familyDocRef = doc(db, "families", joinCode.trim());
+      const familyDocSnap = await getDoc(familyDocRef);
 
-      if (querySnapshot.empty) {
+      if (!familyDocSnap.exists()) {
         console.log('JoinFamily - No family found with code:', joinCode.trim());
         Alert.alert("Error", "Invalid family code. Please check and try again.");
         setLoading(false);
         return;
       }
 
-      const familyDoc = querySnapshot.docs[0];
-      const familyData = familyDoc.data();
+      const familyData = familyDocSnap.data();
       
       console.log('JoinFamily - Found family:', familyData);
       
@@ -266,7 +268,7 @@ export default function AddFamily({ navigation }) {
       
       console.log('JoinFamily - Updating family with new member:', { newMember, updatedMembers });
 
-      await updateDoc(familyDoc.ref, {
+      await updateDoc(familyDocRef, {
         members: updatedMembers
       });
 

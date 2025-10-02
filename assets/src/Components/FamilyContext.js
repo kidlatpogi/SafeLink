@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { db } from '../firebaseConfig';
-import { collection, getDocs, doc as firestoreDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc as firestoreDoc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useUser } from './UserContext';
 
 const FamilyContext = createContext();
@@ -191,7 +191,47 @@ export const FamilyProvider = ({ children }) => {
     // Helper methods
     getCurrentUserMember: () => familyData.family.find(member => member.userId === userId),
     getFamilyMemberById: (memberId) => familyData.family.find(member => member.userId === memberId),
-    getFamilyMemberCount: () => familyData.family.length
+    getFamilyMemberCount: () => familyData.family.length,
+    
+    // Update user status using family code as document ID
+    updateUserStatus: async (newStatus) => {
+      if (!familyData.familyCode || !userId) {
+        console.error('FamilyContext - Cannot update status: missing familyCode or userId');
+        return false;
+      }
+      
+      try {
+        console.log('FamilyContext - Updating user status:', { familyCode: familyData.familyCode, userId, newStatus });
+        
+        // Get family document using family code as document ID
+        const familyDocRef = firestoreDoc(db, "families", familyData.familyCode);
+        const familyDocSnap = await getDoc(familyDocRef);
+        
+        if (!familyDocSnap.exists()) {
+          console.error('FamilyContext - Family document not found:', familyData.familyCode);
+          return false;
+        }
+        
+        const currentFamilyData = familyDocSnap.data();
+        const updatedMembers = currentFamilyData.members.map(member => {
+          if (member.userId === userId) {
+            return {
+              ...member,
+              status: newStatus,
+              lastUpdate: new Date().toISOString()
+            };
+          }
+          return member;
+        });
+        
+        await updateDoc(familyDocRef, { members: updatedMembers });
+        console.log('FamilyContext - User status updated successfully');
+        return true;
+      } catch (error) {
+        console.error('FamilyContext - Error updating user status:', error);
+        return false;
+      }
+    }
   };
 
   return (
