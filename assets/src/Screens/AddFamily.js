@@ -31,10 +31,14 @@ import HamburgerMenu from "../Components/HamburgerMenu";
 
 export default function AddFamily({ navigation }) {
   const { userId, displayName: userDisplayName, email: userEmail } = useUser();
-  const { family, familyCode, familyName, isAdmin } = useFamily();
+  const { family: contextFamily, familyCode: contextFamilyCode, familyName, isAdmin } = useFamily();
   
   const [joinCode, setJoinCode] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Local state for family data (since context doesn't provide setters)
+  const [localFamily, setLocalFamily] = useState([]);
+  const [localFamilyCode, setLocalFamilyCode] = useState("");
 
   // Hamburger menu state
   const [menuVisible, setMenuVisible] = useState(false);
@@ -58,8 +62,19 @@ export default function AddFamily({ navigation }) {
     ]).start();
   };
 
-  // Set myFamilyCode from context
-  const myFamilyCode = familyCode;
+  // Set local family data from context or use local state
+  const myFamilyCode = localFamilyCode || contextFamilyCode;
+  const displayFamily = localFamily.length > 0 ? localFamily : contextFamily;
+
+  // Sync context data with local state
+  useEffect(() => {
+    if (contextFamilyCode && !localFamilyCode) {
+      setLocalFamilyCode(contextFamilyCode);
+    }
+    if (contextFamily && contextFamily.length > 0 && localFamily.length === 0) {
+      setLocalFamily(contextFamily);
+    }
+  }, [contextFamilyCode, contextFamily]);
 
   // Fetch current family and check if user has existing family code
   useEffect(() => {
@@ -83,8 +98,8 @@ export default function AddFamily({ navigation }) {
         });
         
         if (userFamily) {
-          setMyFamilyCode(userFamily.code);
-          setFamily(userFamily.members || []);
+          setLocalFamilyCode(userFamily.code);
+          setLocalFamily(userFamily.members || []);
         }
       } catch (err) {
         console.log("Failed to fetch family data:", err);
@@ -140,15 +155,15 @@ export default function AddFamily({ navigation }) {
           name: userDisplayName,
           isAdmin: true,
           joinedAt: new Date().toISOString(),
-          status: "SAFE",
+          status: "I'm Safe",
           lastUpdate: new Date().toISOString()
         }]
       };
 
       await addDoc(collection(db, "families"), familyData);
       
-      setMyFamilyCode(newCode);
-      setFamily(familyData.members);
+      setLocalFamilyCode(newCode);
+      setLocalFamily(familyData.members);
       
       Alert.alert(
         "Family Created!", 
@@ -220,7 +235,7 @@ export default function AddFamily({ navigation }) {
         name: userDisplayName,
         isAdmin: false,
         joinedAt: new Date().toISOString(),
-        status: "SAFE",
+        status: "I'm Safe",
         lastUpdate: new Date().toISOString()
       };
 
@@ -230,8 +245,8 @@ export default function AddFamily({ navigation }) {
         members: updatedMembers
       });
 
-      setMyFamilyCode(joinCode.trim());
-      setFamily(updatedMembers);
+      setLocalFamilyCode(joinCode.trim());
+      setLocalFamily(updatedMembers);
       setJoinCode("");
 
       Alert.alert("Joined Family!", "You've successfully joined the family.");
@@ -247,6 +262,24 @@ export default function AddFamily({ navigation }) {
   const copyToClipboard = (code) => {
     Clipboard.setString(code);
     Alert.alert("Copied!", "Family code copied to clipboard.");
+  };
+
+  // Get appropriate status color
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "i'm safe":
+      case "safe":
+        return "#4CAF50"; // Green
+      case "not yet responded":
+        return "#FF9800"; // Orange
+      case "unknown":
+        return "#9E9E9E"; // Gray
+      case "evacuated":
+      case "emergency":
+        return "#F44336"; // Red
+      default:
+        return "#FF9800"; // Default orange
+    }
   };
 
   return (
@@ -273,7 +306,7 @@ export default function AddFamily({ navigation }) {
       {/* Title */}
       <View style={styles.titleRow}>
         <Ionicons name="people" size={24} color="#E65100" />
-        <Text style={styles.title}>Add A Family</Text>
+        <Text style={styles.title}>Add a Family</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -353,13 +386,13 @@ export default function AddFamily({ navigation }) {
         )}
 
         {/* Current Family Members */}
-        {family.length > 0 && (
+        {displayFamily.length > 0 && (
           <View style={styles.familyMembersSection}>
             <View style={styles.codeSectionHeader}>
               <Ionicons name="people" size={20} color="#4CAF50" />
-              <Text style={styles.codeSectionTitle}>Family Members ({family.length})</Text>
+              <Text style={styles.codeSectionTitle}>Family Members ({displayFamily.length})</Text>
             </View>
-            {family.map((member, index) => (
+            {displayFamily.map((member, index) => (
               <View key={index} style={styles.memberCard}>
                 <View style={styles.memberInfo}>
                   <Ionicons name="person-circle" size={32} color="#2196F3" />
@@ -375,7 +408,7 @@ export default function AddFamily({ navigation }) {
                   </View>
                 </View>
                 <View style={styles.memberStatus}>
-                  <View style={[styles.statusIndicator, { backgroundColor: member.status === 'SAFE' ? '#4CAF50' : '#FF5722' }]} />
+                  <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(member.status) }]} />
                   <Text style={styles.statusText}>{member.status}</Text>
                 </View>
               </View>
