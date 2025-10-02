@@ -13,16 +13,17 @@ const HomeContent = ({ displayName, navigation }) => {
   const { userId } = useUser();
   const { family, userStatus } = useFamily();
   
-  const API_KEY = "c956f87c395021c41caf56aba8b6d870"; // OpenWeather API Key
-
+  // Debug family data
+  useEffect(() => {
+    console.log('HomeContent - Family data:', { 
+      familyCount: family?.length || 0, 
+      userStatus, 
+      family: family 
+    });
+  }, [family, userStatus]);
+  
   // Use optimized location hook with automatic tracking
-  const { location, loading: locationLoading, error: locationError } = useLocation({
-    enableTracking: true, // Enable background tracking
-    onLocationUpdate: (newLocation) => {
-      // Automatically update weather when location changes
-      fetchWeatherForLocation(newLocation.latitude, newLocation.longitude);
-    }
-  });
+  const { location, loading: locationLoading, error: locationError } = useLocation();
   
   const [weather, setWeather] = useState(null);
   const [city, setCity] = useState(null);
@@ -229,7 +230,7 @@ const HomeContent = ({ displayName, navigation }) => {
           >
             <View style={styles.itemRow}>
               <Ionicons name="person-add" size={30} color="#2196F3" />
-              <Text style={styles.itemText}>Add A Family</Text>
+              <Text style={styles.itemText}>Add a Family</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -248,7 +249,7 @@ const HomeContent = ({ displayName, navigation }) => {
         </View>
 
         <View style={styles.familyListContainer}>
-          {family.length === 0 ? (
+          {!family || family.length === 0 ? (
             <View style={styles.emptyFamilyContainer}>
               <Ionicons name="people-outline" size={48} color="#ccc" />
               <Text style={styles.emptyFamilyText}>No family members added yet.</Text>
@@ -256,12 +257,12 @@ const HomeContent = ({ displayName, navigation }) => {
             </View>
           ) : (
             family.map((member) => (
-              <View key={member.userId} style={[styles.familyMemberCard, { borderLeftColor: getMemberStatusColor(member.status) }]}>
+              <View key={member.userId || member.email} style={[styles.familyMemberCard, { borderLeftColor: getMemberStatusColor(member.status) }]}>
                 <View style={styles.familyMemberInfo}>
                   <Ionicons name="person-circle" size={40} color="#2196F3" />
                   <View style={styles.familyMemberDetails}>
-                    <Text style={styles.familyMemberName}>{member.name}</Text>
-                    <Text style={styles.familyMemberEmail}>{member.email}</Text>
+                    <Text style={styles.familyMemberName}>{member.name || 'Unknown Member'}</Text>
+                    <Text style={styles.familyMemberEmail}>{member.email || 'No email'}</Text>
                     {member.isAdmin && (
                       <View style={styles.familyAdminBadge}>
                         <Ionicons name="star" size={10} color="#FF9800" />
@@ -273,7 +274,7 @@ const HomeContent = ({ displayName, navigation }) => {
                 <View style={styles.familyMemberStatus}>
                   <View style={[styles.familyStatusIndicator, { backgroundColor: getMemberStatusColor(member.status) }]} />
                   <Text style={[styles.familyStatusText, { color: getMemberStatusColor(member.status) }]}>
-                    {member.status || "Safe"}
+                    {member.status || "Unknown"}
                   </Text>
                 </View>
               </View>

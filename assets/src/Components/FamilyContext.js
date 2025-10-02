@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { db } from '../firebaseConfig';
-import { collection, getDocs, doc as firestoreDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc as firestoreDoc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useUser } from './UserContext';
 
 const FamilyContext = createContext();
@@ -50,6 +50,12 @@ export const FamilyProvider = ({ children }) => {
         
         querySnapshot.forEach((familyDoc) => {
           const familyDocData = familyDoc.data();
+          
+          // Skip archived families
+          if (familyDocData.isArchived) {
+            return;
+          }
+          
           const memberFound = familyDocData.members?.find(member => member.userId === userId);
           
           if (memberFound) {
@@ -72,6 +78,13 @@ export const FamilyProvider = ({ children }) => {
               
               // Find current user in family members
               const currentUserMember = familyDocData.members?.find(member => member.userId === userId);
+              
+              console.log('FamilyContext - Processing family update:', {
+                familyId: userFamily.id,
+                membersCount: familyDocData.members?.length || 0,
+                currentUserMember,
+                familyCode: familyDocData.code
+              });
               
               // Enrich family members with additional data
               const enrichedMembers = await Promise.all(
@@ -142,7 +155,7 @@ export const FamilyProvider = ({ children }) => {
 
               setFamilyData({
                 family: sortedMembers,
-                familyCode: familyDocData.familyCode || '',
+                familyCode: familyDocData.code || familyDocData.familyCode || '',
                 familyName: familyDocData.familyName || '',
                 isAdmin: currentUserMember?.isAdmin || false,
                 userStatus: currentUserMember?.status || 'Not Yet Responded'
@@ -184,7 +197,58 @@ export const FamilyProvider = ({ children }) => {
     // Helper methods
     getCurrentUserMember: () => familyData.family.find(member => member.userId === userId),
     getFamilyMemberById: (memberId) => familyData.family.find(member => member.userId === memberId),
-    getFamilyMemberCount: () => familyData.family.length
+    getFamilyMemberCount: () => familyData.family.length,
+    
+    // Update user status using family code as document ID
+    updateUserStatus: async (newStatus) => {
+      if (!familyData.familyCode || !userId) {
+        console.error('FamilyContext - Cannot update status: missing familyCode or userId');
+        return false;
+      }
+      
+      try {
+        console.log('FamilyContext - Updating user status:', { familyCode: familyData.familyCode, userId, newStatus });
+        
+        // Get family document using family code as document ID
+        const familyDocRef = firestoreDoc(db, "families", familyData.familyCode);
+        const familyDocSnap = await getDoc(familyDocRef);
+        
+        if (!familyDocSnap.exists()) {
+          console.error('FamilyContext - Family document not found:', familyData.familyCode);
+          return false;
+        }
+        
+        const currentFamilyData = familyDocSnap.data();
+        const updatedMembers = currentFamilyData.members.map(member => {
+          if (member.userId === userId) {
+            return {
+              ...member,
+              status: newStatus,
+              lastUpdate: new Date().toISOString()
+            };
+          }
+          return member;
+        });
+        
+        await updateDoc(familyDocRef, { members: updatedMembers });
+        console.log('FamilyContext - User status updated successfully');
+        return true;
+      } catch (error) {
+        console.error('FamilyContext - Error updating user status:', error);
+        return false;
+      }
+    },
+
+    // Get members with pending removal requests (admin only)
+    getMembersWithRemovalRequests: () => {
+      return familyData.family.filter(member => member.removalRequested === true);
+    },
+
+    // Check if current user is the family creator
+    isCreator: () => {
+      const currentUser = familyData.family.find(member => member.userId === userId);
+      return currentUser?.isAdmin && familyData.createdBy === userId;
+    }
   };
 
   return (

@@ -112,7 +112,36 @@ export default StyleSheet.create({
   codeSectionHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 12,
+  },
+  codeSectionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F5",
+    position: "relative",
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "#F44336",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "white",
+  },
+  notificationText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
   },
   codeSectionTitle: {
     fontSize: 18,
@@ -253,8 +282,36 @@ export default StyleSheet.create({
     fontWeight: "600",
     marginLeft: 2,
   },
+  
+  // 🔹 Member Badges
+  memberBadges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 2,
+  },
+  removalBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFEBEE",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 4,
+  },
+  removalText: {
+    fontSize: 10,
+    color: "#F44336",
+    fontWeight: "600",
+    marginLeft: 2,
+  },
+  
+  // 🔹 Member Actions
+  memberActions: {
+    alignItems: "flex-end",
+  },
   memberStatus: {
     alignItems: "center",
+    marginBottom: 8,
   },
   statusIndicator: {
     width: 12,
@@ -266,5 +323,308 @@ export default StyleSheet.create({
     fontSize: 12,
     color: "#666",
     fontWeight: "500",
+  },
+  
+  // 🔹 Action Buttons
+  kickButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFEBEE",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F44336",
+  },
+  kickButtonText: {
+    fontSize: 11,
+    color: "#F44336",
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  requestButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFEBEE",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F44336",
+  },
+  requestButtonText: {
+    fontSize: 11,
+    color: "#F44336",
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  cancelRequestButton: {
+    backgroundColor: "#FFF3E0",
+    borderColor: "#FF9800",
+  },
+  cancelRequestButtonText: {
+    color: "#FF9800",
+  },
+  adminIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E8",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#4CAF50",
+  },
+  adminIndicatorText: {
+    fontSize: 11,
+    color: "#4CAF50",
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  
+  // 🔹 Management Section
+  managementSection: {
+    backgroundColor: "#FFEBEE",
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
+  },
+  
+  // 🔹 Removal Requests
+  removalRequestsSection: {
+    backgroundColor: "#FFF3E0",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#FFCC02",
+  },
+  removalRequestsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#E65100",
+    marginBottom: 8,
+  },
+  removalRequestCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "white",
+    padding: 8,
+    borderRadius: 6,
+    marginVertical: 2,
+  },
+  requestMemberInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  requestMemberName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginLeft: 8,
+  },
+  approveRemovalButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  approveRemovalText: {
+    fontSize: 12,
+    color: "white",
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  
+  archiveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F44336",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  archiveButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  archiveWarning: {
+    fontSize: 12,
+    color: "#D32F2F",
+    textAlign: "center",
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+  
+  // 🔹 Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    width: "100%",
+    maxHeight: "80%",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  
+  // 🔹 Confirmation Modal
+  confirmationModalContent: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    width: "90%",
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  confirmationModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  confirmationModalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#D32F2F",
+    flex: 1,
+  },
+  confirmationModalBody: {
+    padding: 20,
+  },
+  confirmationModalDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 16,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  
+  // 🔹 Archive Section in Modal
+  archiveSection: {
+    backgroundColor: "#FFEBEE",
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
+  },
+  archiveSectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#D32F2F",
+    marginBottom: 8,
+  },
+  archiveSectionDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  
+  // 🔹 Confirmation Section
+  confirmationSection: {
+    backgroundColor: "#FFF3E0",
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 2,
+    borderColor: "#FF9800",
+  },
+  confirmationTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#E65100",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  confirmationInstructions: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 12,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  confirmationInput: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    backgroundColor: "white",
+    marginBottom: 16,
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  confirmationButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  cancelConfirmButton: {
+    flex: 1,
+    backgroundColor: "#E0E0E0",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  cancelConfirmText: {
+    color: "#666",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  proceedButton: {
+    flex: 1,
+    backgroundColor: "#F44336",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  proceedButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

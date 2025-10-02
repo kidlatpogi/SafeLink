@@ -7,21 +7,19 @@ import {
   TouchableOpacity,
   Alert,
   Image,
-  Clipboard,
   Animated,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { db, auth } from "../firebaseConfig";
+import * as Clipboard from 'expo-clipboard';
+import { db } from "../firebaseConfig";
 import { 
   collection, 
-  addDoc, 
+  setDoc,
   getDocs, 
   doc, 
   getDoc, 
-  updateDoc, 
-  query, 
-  where,
-  serverTimestamp 
+  updateDoc
 } from "firebase/firestore";
 import { useUser } from '../Components/UserContext';
 import { useFamily } from '../Components/FamilyContext';
@@ -31,10 +29,28 @@ import HamburgerMenu from "../Components/HamburgerMenu";
 
 export default function AddFamily({ navigation }) {
   const { userId, displayName: userDisplayName, email: userEmail } = useUser();
-  const { family, familyCode, familyName, isAdmin } = useFamily();
+  const { 
+    family: contextFamily, 
+    familyCode: contextFamilyCode, 
+    familyName, 
+    isAdmin,
+    getMembersWithRemovalRequests,
+    isCreator
+  } = useFamily();
   
   const [joinCode, setJoinCode] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Local state for family data (since context doesn't provide setters)
+  const [localFamily, setLocalFamily] = useState([]);
+  const [localFamilyCode, setLocalFamilyCode] = useState("");
+
+  // Family Management Modal states
+  const [managementModalVisible, setManagementModalVisible] = useState(false);
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [confirmationText, setConfirmationText] = useState("");
+  const [actionType, setActionType] = useState(""); // "archive" or "remove"
+  const [memberToRemove, setMemberToRemove] = useState(null);
 
   // Hamburger menu state
   const [menuVisible, setMenuVisible] = useState(false);
@@ -58,16 +74,69 @@ export default function AddFamily({ navigation }) {
     ]).start();
   };
 
-  // Set myFamilyCode from context
-  const myFamilyCode = familyCode;
+  // Set local family data from context or use local state
+  const myFamilyCode = localFamilyCode || contextFamilyCode;
+  const displayFamily = localFamily.length > 0 ? localFamily : (contextFamily || []);
+  
+  // Determine admin status from local family data
+  const currentUserMember = displayFamily.find(member => member.userId === userId);
+  const isLocalAdmin = currentUserMember?.isAdmin || false;
+
+  // Refresh family data
+  const refreshFamilyData = async () => {
+    if (!userId) return;
+    
+    try {
+      // Check if user is part of any family by searching through all families
+      const familiesRef = collection(db, "families");
+      const querySnapshot = await getDocs(familiesRef);
+      
+      let userFamily = null;
+      
+      querySnapshot.forEach((doc) => {
+        const familyData = doc.data();
+        
+        // Skip archived families
+        if (familyData.isArchived) {
+          return;
+        }
+        
+        const isUserMember = familyData.members?.some(member => member.userId === userId);
+        
+        if (isUserMember) {
+          userFamily = { id: doc.id, ...familyData };
+        }
+      });
+      
+      if (userFamily) {
+        setLocalFamilyCode(userFamily.code);
+        setLocalFamily(userFamily.members || []);
+      } else {
+        setLocalFamilyCode("");
+        setLocalFamily([]);
+      }
+    } catch (err) {
+      console.log("Failed to refresh family data:", err);
+    }
+  };
+
+  // Sync context data with local state
+  useEffect(() => {
+    if (contextFamilyCode && !localFamilyCode) setLocalFamilyCode(contextFamilyCode);
+    if (contextFamily && Array.isArray(contextFamily) && contextFamily.length > 0 && localFamily.length === 0) {
+      setLocalFamily(contextFamily);
+    }
+  }, [contextFamilyCode, contextFamily]);
 
   // Fetch current family and check if user has existing family code
+  // Note: This supports both new structure (family code as doc ID) and legacy structure (random doc IDs)
   useEffect(() => {
     if (!userId) return;
     
     const fetchFamilyData = async () => {
       try {
         // Check if user is part of any family by searching through all families
+        // This approach works for both new and legacy family documents
         const familiesRef = collection(db, "families");
         const querySnapshot = await getDocs(familiesRef);
         
@@ -75,6 +144,12 @@ export default function AddFamily({ navigation }) {
         
         querySnapshot.forEach((doc) => {
           const familyData = doc.data();
+          
+          // Skip archived families
+          if (familyData.isArchived) {
+            return;
+          }
+          
           const isUserMember = familyData.members?.some(member => member.userId === userId);
           
           if (isUserMember) {
@@ -83,8 +158,8 @@ export default function AddFamily({ navigation }) {
         });
         
         if (userFamily) {
-          setMyFamilyCode(userFamily.code);
-          setFamily(userFamily.members || []);
+          setLocalFamilyCode(userFamily.code);
+          setLocalFamily(userFamily.members || []);
         }
       } catch (err) {
         console.log("Failed to fetch family data:", err);
@@ -120,35 +195,46 @@ export default function AddFamily({ navigation }) {
       // Generate unique code
       while (!isUnique) {
         newCode = generateFamilyCode();
-        const familiesRef = collection(db, "families");
-        const q = query(familiesRef, where("code", "==", newCode));
-        const querySnapshot = await getDocs(q);
+        const familyDocRef = doc(db, "families", newCode);
+        const familyDocSnap = await getDoc(familyDocRef);
         
-        if (querySnapshot.empty) {
+        if (!familyDocSnap.exists()) {
           isUnique = true;
+        } else {
+          const existingFamily = familyDocSnap.data();
+          if (existingFamily.isArchived) {
+            // Continue loop to generate new code for archived families
+          }
         }
       }
 
-      // Create new family document
+      // Create new family document with family code as document ID
       const familyData = {
         code: newCode,
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
         createdBy: userId,
+        isArchived: false,
+        archivedAt: null,
+        archivedBy: null,
         members: [{
           userId,
           email: userEmail,
           name: userDisplayName,
           isAdmin: true,
           joinedAt: new Date().toISOString(),
-          status: "SAFE",
-          lastUpdate: new Date().toISOString()
+          status: "I'm Safe",
+          lastUpdate: new Date().toISOString(),
+          removalRequested: false,
+          removalRequestedAt: null
         }]
       };
 
-      await addDoc(collection(db, "families"), familyData);
+      const familyDocRef = doc(db, "families", newCode);
+      await setDoc(familyDocRef, familyData);
       
-      setMyFamilyCode(newCode);
-      setFamily(familyData.members);
+      setLocalFamilyCode(newCode);
+      setLocalFamily(familyData.members);
+      await refreshFamilyData();
       
       Alert.alert(
         "Family Created!", 
@@ -160,7 +246,7 @@ export default function AddFamily({ navigation }) {
       );
     } catch (error) {
       console.error("Error creating family:", error);
-      Alert.alert("Error", "Failed to create family. Please try again.");
+      Alert.alert("Error", `Failed to create family: ${error.message || 'Unknown error'}. Please try again.`);
     }
     
     setLoading(false);
@@ -191,23 +277,30 @@ export default function AddFamily({ navigation }) {
     setLoading(true);
 
     try {
-      // Find family with the code
-      const familiesRef = collection(db, "families");
-      const q = query(familiesRef, where("code", "==", joinCode.trim()));
-      const querySnapshot = await getDocs(q);
+      const familyDocRef = doc(db, "families", joinCode.trim());
+      const familyDocSnap = await getDoc(familyDocRef);
 
-      if (querySnapshot.empty) {
+      if (!familyDocSnap.exists()) {
         Alert.alert("Error", "Invalid family code. Please check and try again.");
         setLoading(false);
         return;
       }
 
-      const familyDoc = querySnapshot.docs[0];
-      const familyData = familyDoc.data();
+      const familyData = familyDocSnap.data();
       
-      // Check if user is already a member
-      const isAlreadyMember = familyData.members.some(member => member.userId === userId);
-      if (isAlreadyMember) {
+      if (familyData.isArchived) {
+        Alert.alert("Error", "This family is no longer active. Please contact the family admin for a new code.");
+        setLoading(false);
+        return;
+      }
+      
+      if (!familyData.members || !Array.isArray(familyData.members)) {
+        Alert.alert("Error", "Invalid family data structure. Please contact support.");
+        setLoading(false);
+        return;
+      }
+      
+      if (familyData.members.some(member => member.userId === userId)) {
         Alert.alert("Info", "You're already a member of this family.");
         setLoading(false);
         return;
@@ -220,33 +313,199 @@ export default function AddFamily({ navigation }) {
         name: userDisplayName,
         isAdmin: false,
         joinedAt: new Date().toISOString(),
-        status: "SAFE",
-        lastUpdate: new Date().toISOString()
+        status: "I'm Safe",
+        lastUpdate: new Date().toISOString(),
+        removalRequested: false,
+        removalRequestedAt: null
       };
 
       const updatedMembers = [...familyData.members, newMember];
+      
+      await updateDoc(familyDocRef, { members: updatedMembers });
 
-      await updateDoc(familyDoc.ref, {
-        members: updatedMembers
-      });
-
-      setMyFamilyCode(joinCode.trim());
-      setFamily(updatedMembers);
+      setLocalFamilyCode(joinCode.trim());
+      setLocalFamily(updatedMembers);
       setJoinCode("");
+      await refreshFamilyData();
 
       Alert.alert("Joined Family!", "You've successfully joined the family.");
     } catch (error) {
       console.error("Error joining family:", error);
-      Alert.alert("Error", "Failed to join family. Please try again.");
+      Alert.alert("Error", `Failed to join family: ${error.message || 'Unknown error'}. Please try again.`);
     }
 
     setLoading(false);
   };
 
   // Copy code to clipboard
-  const copyToClipboard = (code) => {
-    Clipboard.setString(code);
-    Alert.alert("Copied!", "Family code copied to clipboard.");
+  const copyToClipboard = async (code) => {
+    try {
+      await Clipboard.setStringAsync(code);
+      Alert.alert("Copied!", "Family code copied to clipboard.");
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      Alert.alert("Error", "Failed to copy code to clipboard.");
+    }
+  };
+
+  // Archive family (only family creator can do this)
+  const archiveFamily = async () => {
+    if (!myFamilyCode || !isLocalAdmin) {
+      Alert.alert("Error", "Only the family creator can archive the family.");
+      return;
+    }
+
+    if (confirmationText !== "CONFIRM DELETE") {
+      Alert.alert("Error", "Please type 'CONFIRM DELETE' to proceed with archiving the family.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, "families", myFamilyCode), {
+        isArchived: true,
+        archivedAt: new Date().toISOString(),
+        archivedBy: userId
+      });
+
+      // Reset state and refresh
+      setManagementModalVisible(false);
+      setConfirmationModalVisible(false);
+      setConfirmationText("");
+      setActionType("");
+      setLocalFamilyCode("");
+      setLocalFamily([]);
+      await refreshFamilyData();
+      
+      Alert.alert("Family Archived", "The family has been archived successfully. You can now create or join a new family.");
+    } catch (error) {
+      console.error("Error archiving family:", error);
+      Alert.alert("Error", "Failed to archive family. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  // Kick family member (only admin can do this)
+  const kickMember = async (memberToKick) => {
+    if (!isLocalAdmin) {
+      Alert.alert("Error", "Only family admin can remove members.");
+      return;
+    }
+
+    if (memberToKick.userId === userId) {
+      Alert.alert("Error", "You cannot remove yourself. Use archive family instead.");
+      return;
+    }
+
+    if (confirmationText !== "CONFIRM REMOVAL") {
+      Alert.alert("Error", "Please type 'CONFIRM REMOVAL' to proceed with removing this member.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const updatedMembers = displayFamily.filter(member => member.userId !== memberToKick.userId);
+      
+      await updateDoc(doc(db, "families", myFamilyCode), { members: updatedMembers });
+
+      // Reset state and refresh
+      setConfirmationModalVisible(false);
+      setManagementModalVisible(false);
+      setMemberToRemove(null);
+      setConfirmationText("");
+      setActionType("");
+      setLocalFamily(updatedMembers);
+      await refreshFamilyData();
+      
+      Alert.alert("Member Removed", `${memberToKick.name} has been removed from the family.`);
+    } catch (error) {
+      console.error("Error removing member:", error);
+      Alert.alert("Error", "Failed to remove member. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  // Open confirmation modal for member removal
+  const openRemovalConfirmation = (member) => {
+    setMemberToRemove(member);
+    setActionType("remove");
+    setConfirmationText("");
+    setConfirmationModalVisible(true);
+  };
+
+  // Open confirmation modal for family archive
+  const openArchiveConfirmation = () => {
+    setActionType("archive");
+    setConfirmationText("");
+    setConfirmationModalVisible(true);
+  };
+
+  // Handle removal requests (request or cancel)
+  const handleRemovalRequest = async (isCancel = false) => {
+    if (isLocalAdmin) {
+      Alert.alert("Info", "As the family admin, you can archive the entire family instead.");
+      return;
+    }
+
+    const action = isCancel ? "Cancel Request" : "Request Removal";
+    const message = isCancel 
+      ? "Are you sure you want to cancel your removal request?"
+      : "Are you sure you want to request removal from this family? The family admin will be notified.";
+
+    Alert.alert(action, message, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: isCancel ? "Cancel Request" : "Request",
+        onPress: async () => {
+          setLoading(true);
+          try {
+            const updatedMembers = displayFamily.map(member => {
+              if (member.userId === userId) {
+                return {
+                  ...member,
+                  removalRequested: !isCancel,
+                  removalRequestedAt: isCancel ? null : new Date().toISOString()
+                };
+              }
+              return member;
+            });
+            
+            await updateDoc(doc(db, "families", myFamilyCode), { members: updatedMembers });
+            setLocalFamily(updatedMembers);
+            await refreshFamilyData();
+            
+            Alert.alert(
+              isCancel ? "Request Cancelled" : "Request Sent", 
+              isCancel 
+                ? "Your removal request has been cancelled."
+                : "Your removal request has been sent to the family admin."
+            );
+          } catch (error) {
+            console.error(`Error handling removal request:`, error);
+            Alert.alert("Error", `Failed to ${isCancel ? 'cancel' : 'send'} removal request. Please try again.`);
+          }
+          setLoading(false);
+        }
+      }
+    ]);
+  };
+
+  // Get appropriate status color
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "i'm safe":
+      case "safe":
+        return "#4CAF50"; // Green
+      case "not yet responded":
+        return "#FF9800"; // Orange
+      case "unknown":
+        return "#9E9E9E"; // Gray
+      case "evacuated":
+      case "emergency":
+        return "#F44336"; // Red
+      default:
+        return "#FF9800"; // Default orange
+    }
   };
 
   return (
@@ -273,7 +532,7 @@ export default function AddFamily({ navigation }) {
       {/* Title */}
       <View style={styles.titleRow}>
         <Ionicons name="people" size={24} color="#E65100" />
-        <Text style={styles.title}>Add A Family</Text>
+        <Text style={styles.title}>Add a Family</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -282,8 +541,23 @@ export default function AddFamily({ navigation }) {
         {myFamilyCode ? (
           <View style={styles.codeSection}>
             <View style={styles.codeSectionHeader}>
-              <Ionicons name="people" size={20} color="#4CAF50" />
-              <Text style={styles.codeSectionTitle}>Your Family Code</Text>
+              <View style={styles.codeSectionLeft}>
+                <Ionicons name="people" size={20} color="#4CAF50" />
+                <Text style={styles.codeSectionTitle}>Your Family Code</Text>
+              </View>
+              {isLocalAdmin && (
+                <TouchableOpacity 
+                  style={styles.settingsButton}
+                  onPress={() => setManagementModalVisible(true)}
+                >
+                  <Ionicons name="settings" size={20} color="#666" />
+                  {getMembersWithRemovalRequests && getMembersWithRemovalRequests().length > 0 && (
+                    <View style={styles.notificationBadge}>
+                      <Text style={styles.notificationText}>{getMembersWithRemovalRequests().length}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
             <View style={styles.codeDisplay}>
               <Text style={styles.familyCodeText}>{myFamilyCode}</Text>
@@ -302,8 +576,10 @@ export default function AddFamily({ navigation }) {
         ) : (
           <View style={styles.codeSection}>
             <View style={styles.codeSectionHeader}>
-              <Ionicons name="add-circle" size={20} color="#FF9800" />
-              <Text style={styles.codeSectionTitle}>Create Family</Text>
+              <View style={styles.codeSectionLeft}>
+                <Ionicons name="add-circle" size={20} color="#FF9800" />
+                <Text style={styles.codeSectionTitle}>Create Family</Text>
+              </View>
             </View>
             <Text style={styles.codeInstructions}>
               Create a family and get a unique 6-digit code to share with your family members.
@@ -325,8 +601,10 @@ export default function AddFamily({ navigation }) {
         {!myFamilyCode && (
           <View style={styles.codeSection}>
             <View style={styles.codeSectionHeader}>
-              <Ionicons name="enter" size={20} color="#2196F3" />
-              <Text style={styles.codeSectionTitle}>Join Family</Text>
+              <View style={styles.codeSectionLeft}>
+                <Ionicons name="enter" size={20} color="#2196F3" />
+                <Text style={styles.codeSectionTitle}>Join Family</Text>
+              </View>
             </View>
             <Text style={styles.codeInstructions}>
               Enter the 6-digit family code shared by your family member.
@@ -353,36 +631,247 @@ export default function AddFamily({ navigation }) {
         )}
 
         {/* Current Family Members */}
-        {family.length > 0 && (
+        {displayFamily.length > 0 && (
           <View style={styles.familyMembersSection}>
             <View style={styles.codeSectionHeader}>
-              <Ionicons name="people" size={20} color="#4CAF50" />
-              <Text style={styles.codeSectionTitle}>Family Members ({family.length})</Text>
+              <View style={styles.codeSectionLeft}>
+                <Ionicons name="people" size={20} color="#4CAF50" />
+                <Text style={styles.codeSectionTitle}>Family Members ({displayFamily.length})</Text>
+              </View>
             </View>
-            {family.map((member, index) => (
+            {displayFamily.map((member, index) => (
               <View key={index} style={styles.memberCard}>
                 <View style={styles.memberInfo}>
                   <Ionicons name="person-circle" size={32} color="#2196F3" />
                   <View style={styles.memberDetails}>
                     <Text style={styles.memberName}>{member.name}</Text>
                     <Text style={styles.memberEmail}>{member.email}</Text>
-                    {member.isAdmin && (
-                      <View style={styles.adminBadge}>
-                        <Ionicons name="star" size={12} color="#FF9800" />
-                        <Text style={styles.adminText}>Admin</Text>
-                      </View>
-                    )}
+                    <View style={styles.memberBadges}>
+                      {member.isAdmin && (
+                        <View style={styles.adminBadge}>
+                          <Ionicons name="star" size={12} color="#FF9800" />
+                          <Text style={styles.adminText}>Family Creator</Text>
+                        </View>
+                      )}
+                      {member.removalRequested && (
+                        <View style={styles.removalBadge}>
+                          <Ionicons name="warning" size={12} color="#F44336" />
+                          <Text style={styles.removalText}>Removal Requested</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </View>
-                <View style={styles.memberStatus}>
-                  <View style={[styles.statusIndicator, { backgroundColor: member.status === 'SAFE' ? '#4CAF50' : '#FF5722' }]} />
-                  <Text style={styles.statusText}>{member.status}</Text>
+                <View style={styles.memberActions}>
+                  <View style={styles.memberStatus}>
+                    <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(member.status) }]} />
+                    <Text style={styles.statusText}>{member.status}</Text>
+                  </View>
+                  
+                  {/* Admin Actions */}
+                  {isLocalAdmin && member.userId !== userId && (
+                    <TouchableOpacity 
+                      style={styles.kickButton}
+                      onPress={() => openRemovalConfirmation(member)}
+                      disabled={loading}
+                    >
+                      <Ionicons name="person-remove" size={16} color="#F44336" />
+                      <Text style={styles.kickButtonText}>Remove</Text>
+                    </TouchableOpacity>
+                  )}
+                  
+                  {/* Member's own actions - only for non-admin members */}
+                  {member.userId === userId && !isLocalAdmin && (
+                    <TouchableOpacity 
+                      style={[styles.requestButton, member.removalRequested && styles.cancelRequestButton]}
+                      onPress={() => handleRemovalRequest(member.removalRequested)}
+                      disabled={loading}
+                    >
+                      <Ionicons 
+                        name={member.removalRequested ? "close-circle" : "exit"} 
+                        size={16} 
+                        color={member.removalRequested ? "#FF9800" : "#F44336"} 
+                      />
+                      <Text style={[styles.requestButtonText, member.removalRequested && styles.cancelRequestButtonText]}>
+                        {member.removalRequested ? "Cancel Request" : "Request Removal"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  
+                  {/* Admin's own member card - no actions needed */}
+                  {member.userId === userId && isLocalAdmin && (
+                    <View style={styles.adminIndicator}>
+                      <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
+                      <Text style={styles.adminIndicatorText}>Family Creator</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             ))}
           </View>
         )}
       </ScrollView>
+
+      {/* Family Management Modal */}
+      <Modal
+        visible={managementModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setManagementModalVisible(false);
+          setConfirmationText("");
+          setActionType("");
+          setMemberToRemove(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Family Management</Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setManagementModalVisible(false);
+                  setConfirmationText("");
+                  setActionType("");
+                  setMemberToRemove(null);
+                }}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalBody}>
+              {/* Pending Removal Requests */}
+              {getMembersWithRemovalRequests && getMembersWithRemovalRequests().length > 0 && (
+                <View style={styles.removalRequestsSection}>
+                  <Text style={styles.removalRequestsTitle}>
+                    ⚠️ Pending Removal Requests ({getMembersWithRemovalRequests().length})
+                  </Text>
+                  {getMembersWithRemovalRequests().map((member, index) => (
+                    <View key={index} style={styles.removalRequestCard}>
+                      <View style={styles.requestMemberInfo}>
+                        <Ionicons name="person-circle" size={24} color="#F44336" />
+                        <Text style={styles.requestMemberName}>{member.name}</Text>
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.approveRemovalButton}
+                        onPress={() => openRemovalConfirmation(member)}
+                        disabled={loading}
+                      >
+                        <Ionicons name="checkmark" size={16} color="white" />
+                        <Text style={styles.approveRemovalText}>Approve</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+              
+              {/* Archive Family Section */}
+              <View style={styles.archiveSection}>
+                <Text style={styles.archiveSectionTitle}>🗄️ Archive Family</Text>
+                <Text style={styles.archiveSectionDescription}>
+                  Archiving will make the family code unusable and remove all members' access. This action cannot be undone.
+                </Text>
+                <TouchableOpacity 
+                  style={[styles.archiveButton, loading && styles.disabledButton]}
+                  onPress={openArchiveConfirmation}
+                  disabled={loading}
+                >
+                  <Ionicons name="archive" size={20} color="white" />
+                  <Text style={styles.archiveButtonText}>Archive Family</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Confirmation Modal */}
+      <Modal
+        visible={confirmationModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setConfirmationModalVisible(false);
+          setConfirmationText("");
+          setActionType("");
+          setMemberToRemove(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmationModalContent}>
+            <View style={styles.confirmationModalHeader}>
+              <Text style={styles.confirmationModalTitle}>
+                {actionType === "archive" ? "🔒 Archive Family" : `🔒 Remove ${memberToRemove?.name}`}
+              </Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setConfirmationModalVisible(false);
+                  setConfirmationText("");
+                  setActionType("");
+                  setMemberToRemove(null);
+                }}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.confirmationModalBody}>
+              <Text style={styles.confirmationModalDescription}>
+                {actionType === "archive" 
+                  ? "This will permanently archive your family and make the family code unusable. All members will lose access."
+                  : `This will remove ${memberToRemove?.name} from your family. They will lose access to family features.`
+                }
+              </Text>
+              
+              <Text style={styles.confirmationInstructions}>
+                To proceed, please type "{actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL"}" below:
+              </Text>
+              
+              <TextInput
+                style={styles.confirmationInput}
+                placeholder={actionType === "archive" ? "Type: CONFIRM DELETE" : "Type: CONFIRM REMOVAL"}
+                value={confirmationText}
+                onChangeText={setConfirmationText}
+                autoCapitalize="characters"
+                placeholderTextColor="#999"
+                autoFocus={true}
+              />
+              
+              <View style={styles.confirmationButtons}>
+                <TouchableOpacity 
+                  style={styles.cancelConfirmButton}
+                  onPress={() => {
+                    setConfirmationModalVisible(false);
+                    setActionType("");
+                    setConfirmationText("");
+                    setMemberToRemove(null);
+                  }}
+                >
+                  <Text style={styles.cancelConfirmText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.proceedButton, 
+                    (confirmationText !== (actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL")) && styles.disabledButton
+                  ]}
+                  onPress={actionType === "archive" ? archiveFamily : () => kickMember(memberToRemove)}
+                  disabled={
+                    loading || 
+                    confirmationText !== (actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL")
+                  }
+                >
+                  <Text style={styles.proceedButtonText}>
+                    {loading ? "Processing..." : (actionType === "archive" ? "Archive" : "Remove")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Hamburger Menu */}
       <HamburgerMenu
