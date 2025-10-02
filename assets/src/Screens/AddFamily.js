@@ -50,6 +50,7 @@ export default function AddFamily({ navigation }) {
 
   // Family Management Modal states
   const [managementModalVisible, setManagementModalVisible] = useState(false);
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
   const [confirmationText, setConfirmationText] = useState("");
   const [actionType, setActionType] = useState(""); // "archive" or "remove"
   const [memberToRemove, setMemberToRemove] = useState(null);
@@ -79,6 +80,44 @@ export default function AddFamily({ navigation }) {
   // Set local family data from context or use local state
   const myFamilyCode = localFamilyCode || contextFamilyCode;
   const displayFamily = localFamily.length > 0 ? localFamily : (contextFamily || []);
+
+  // Refresh family data
+  const refreshFamilyData = async () => {
+    if (!userId) return;
+    
+    try {
+      // Check if user is part of any family by searching through all families
+      const familiesRef = collection(db, "families");
+      const querySnapshot = await getDocs(familiesRef);
+      
+      let userFamily = null;
+      
+      querySnapshot.forEach((doc) => {
+        const familyData = doc.data();
+        
+        // Skip archived families
+        if (familyData.isArchived) {
+          return;
+        }
+        
+        const isUserMember = familyData.members?.some(member => member.userId === userId);
+        
+        if (isUserMember) {
+          userFamily = { id: doc.id, ...familyData };
+        }
+      });
+      
+      if (userFamily) {
+        setLocalFamilyCode(userFamily.code);
+        setLocalFamily(userFamily.members || []);
+      } else {
+        setLocalFamilyCode("");
+        setLocalFamily([]);
+      }
+    } catch (err) {
+      console.log("Failed to refresh family data:", err);
+    }
+  };
 
   // Sync context data with local state
   useEffect(() => {
@@ -209,6 +248,9 @@ export default function AddFamily({ navigation }) {
       setLocalFamilyCode(newCode);
       setLocalFamily(familyData.members);
       
+      // Refresh family data for real-time updates
+      await refreshFamilyData();
+      
       Alert.alert(
         "Family Created!", 
         `Your family code is: ${newCode}\n\nShare this code with your family members so they can join.`,
@@ -319,6 +361,9 @@ export default function AddFamily({ navigation }) {
       setLocalFamily(updatedMembers);
       setJoinCode("");
 
+      // Refresh family data for real-time updates
+      await refreshFamilyData();
+
       Alert.alert("Joined Family!", "You've successfully joined the family.");
     } catch (error) {
       console.error("Error joining family:", error);
@@ -360,10 +405,15 @@ export default function AddFamily({ navigation }) {
         archivedBy: userId
       });
 
-      setLocalFamilyCode("");
-      setLocalFamily([]);
+      // Close modals and reset state
       setManagementModalVisible(false);
+      setConfirmationModalVisible(false);
       setConfirmationText("");
+      setActionType("");
+      
+      // Refresh family data
+      await refreshFamilyData();
+      
       Alert.alert("Family Archived", "The family has been archived successfully.");
     } catch (error) {
       console.error("Error archiving family:", error);
@@ -398,9 +448,16 @@ export default function AddFamily({ navigation }) {
         members: updatedMembers
       });
 
-      setLocalFamily(updatedMembers);
+      // Close modals and reset state
+      setConfirmationModalVisible(false);
+      setManagementModalVisible(false);
       setMemberToRemove(null);
       setConfirmationText("");
+      setActionType("");
+      
+      // Refresh family data
+      await refreshFamilyData();
+      
       Alert.alert("Member Removed", `${memberToKick.name} has been removed from the family.`);
     } catch (error) {
       console.error("Error removing member:", error);
@@ -414,12 +471,14 @@ export default function AddFamily({ navigation }) {
     setMemberToRemove(member);
     setActionType("remove");
     setConfirmationText("");
+    setConfirmationModalVisible(true);
   };
 
   // Open confirmation modal for family archive
   const openArchiveConfirmation = () => {
     setActionType("archive");
     setConfirmationText("");
+    setConfirmationModalVisible(true);
   };
 
   // Request removal from family (members can request to be removed)
@@ -455,7 +514,7 @@ export default function AddFamily({ navigation }) {
                 members: updatedMembers
               });
 
-              setLocalFamily(updatedMembers);
+              await refreshFamilyData();
               Alert.alert("Request Sent", "Your removal request has been sent to the family admin.");
             } catch (error) {
               console.error("Error requesting removal:", error);
@@ -488,7 +547,7 @@ export default function AddFamily({ navigation }) {
         members: updatedMembers
       });
 
-      setLocalFamily(updatedMembers);
+      await refreshFamilyData();
       Alert.alert("Request Cancelled", "Your removal request has been cancelled.");
     } catch (error) {
       console.error("Error cancelling removal request:", error);
@@ -781,54 +840,93 @@ export default function AddFamily({ navigation }) {
                   <Text style={styles.archiveButtonText}>Archive Family</Text>
                 </TouchableOpacity>
               </View>
-              
-              {/* Confirmation Section */}
-              {(actionType === "archive" || actionType === "remove") && (
-                <View style={styles.confirmationSection}>
-                  <Text style={styles.confirmationTitle}>
-                    {actionType === "archive" ? "🔒 Security Confirmation" : `🔒 Remove ${memberToRemove?.name}`}
-                  </Text>
-                  <Text style={styles.confirmationInstructions}>
-                    To proceed, please type "{actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL"}" below:
-                  </Text>
-                  <TextInput
-                    style={styles.confirmationInput}
-                    placeholder={actionType === "archive" ? "Type: CONFIRM DELETE" : "Type: CONFIRM REMOVAL"}
-                    value={confirmationText}
-                    onChangeText={setConfirmationText}
-                    autoCapitalize="characters"
-                    placeholderTextColor="#999"
-                  />
-                  <View style={styles.confirmationButtons}>
-                    <TouchableOpacity 
-                      style={styles.cancelConfirmButton}
-                      onPress={() => {
-                        setActionType("");
-                        setConfirmationText("");
-                        setMemberToRemove(null);
-                      }}
-                    >
-                      <Text style={styles.cancelConfirmText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[
-                        styles.proceedButton, 
-                        (confirmationText !== (actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL")) && styles.disabledButton
-                      ]}
-                      onPress={actionType === "archive" ? archiveFamily : () => kickMember(memberToRemove)}
-                      disabled={
-                        loading || 
-                        confirmationText !== (actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL")
-                      }
-                    >
-                      <Text style={styles.proceedButtonText}>
-                        {loading ? "Processing..." : (actionType === "archive" ? "Archive" : "Remove")}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Confirmation Modal */}
+      <Modal
+        visible={confirmationModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setConfirmationModalVisible(false);
+          setConfirmationText("");
+          setActionType("");
+          setMemberToRemove(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmationModalContent}>
+            <View style={styles.confirmationModalHeader}>
+              <Text style={styles.confirmationModalTitle}>
+                {actionType === "archive" ? "🔒 Archive Family" : `🔒 Remove ${memberToRemove?.name}`}
+              </Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setConfirmationModalVisible(false);
+                  setConfirmationText("");
+                  setActionType("");
+                  setMemberToRemove(null);
+                }}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.confirmationModalBody}>
+              <Text style={styles.confirmationModalDescription}>
+                {actionType === "archive" 
+                  ? "This will permanently archive your family and make the family code unusable. All members will lose access."
+                  : `This will remove ${memberToRemove?.name} from your family. They will lose access to family features.`
+                }
+              </Text>
+              
+              <Text style={styles.confirmationInstructions}>
+                To proceed, please type "{actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL"}" below:
+              </Text>
+              
+              <TextInput
+                style={styles.confirmationInput}
+                placeholder={actionType === "archive" ? "Type: CONFIRM DELETE" : "Type: CONFIRM REMOVAL"}
+                value={confirmationText}
+                onChangeText={setConfirmationText}
+                autoCapitalize="characters"
+                placeholderTextColor="#999"
+                autoFocus={true}
+              />
+              
+              <View style={styles.confirmationButtons}>
+                <TouchableOpacity 
+                  style={styles.cancelConfirmButton}
+                  onPress={() => {
+                    setConfirmationModalVisible(false);
+                    setActionType("");
+                    setConfirmationText("");
+                    setMemberToRemove(null);
+                  }}
+                >
+                  <Text style={styles.cancelConfirmText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.proceedButton, 
+                    (confirmationText !== (actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL")) && styles.disabledButton
+                  ]}
+                  onPress={actionType === "archive" ? archiveFamily : () => kickMember(memberToRemove)}
+                  disabled={
+                    loading || 
+                    confirmationText !== (actionType === "archive" ? "CONFIRM DELETE" : "CONFIRM REMOVAL")
+                  }
+                >
+                  <Text style={styles.proceedButtonText}>
+                    {loading ? "Processing..." : (actionType === "archive" ? "Archive" : "Remove")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
       </Modal>

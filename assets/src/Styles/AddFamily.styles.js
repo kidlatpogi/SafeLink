@@ -488,6 +488,43 @@ export default StyleSheet.create({
     padding: 20,
   },
   
+  // 🔹 Confirmation Modal
+  confirmationModalContent: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    width: "90%",
+    maxWidth: 400,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  confirmationModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  confirmationModalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#D32F2F",
+    flex: 1,
+  },
+  confirmationModalBody: {
+    padding: 20,
+  },
+  confirmationModalDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 16,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  
   // 🔹 Archive Section in Modal
   archiveSection: {
     backgroundColor: "#FFEBEE",
