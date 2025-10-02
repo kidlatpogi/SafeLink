@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   Alert,
   Image,
-  Clipboard,
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from 'expo-clipboard';
 import { db, auth } from "../firebaseConfig";
 import { 
   collection, 
@@ -20,8 +20,7 @@ import {
   getDoc, 
   updateDoc, 
   query, 
-  where,
-  serverTimestamp 
+  where
 } from "firebase/firestore";
 import { useUser } from '../Components/UserContext';
 import { useFamily } from '../Components/FamilyContext';
@@ -64,14 +63,16 @@ export default function AddFamily({ navigation }) {
 
   // Set local family data from context or use local state
   const myFamilyCode = localFamilyCode || contextFamilyCode;
-  const displayFamily = localFamily.length > 0 ? localFamily : contextFamily;
+  const displayFamily = localFamily.length > 0 ? localFamily : (contextFamily || []);
 
   // Sync context data with local state
   useEffect(() => {
+    console.log('AddFamily - Context sync:', { contextFamilyCode, contextFamily: contextFamily?.length, localFamilyCode, localFamily: localFamily.length });
+    
     if (contextFamilyCode && !localFamilyCode) {
       setLocalFamilyCode(contextFamilyCode);
     }
-    if (contextFamily && contextFamily.length > 0 && localFamily.length === 0) {
+    if (contextFamily && Array.isArray(contextFamily) && contextFamily.length > 0 && localFamily.length === 0) {
       setLocalFamily(contextFamily);
     }
   }, [contextFamilyCode, contextFamily]);
@@ -116,6 +117,8 @@ export default function AddFamily({ navigation }) {
 
   // Create new family with unique code
   const createFamily = async () => {
+    console.log('CreateFamily - Starting with:', { userId, userEmail, userDisplayName, myFamilyCode });
+    
     if (!userId || !userEmail || !userDisplayName) {
       Alert.alert("Error", "User information not available.");
       return;
@@ -129,6 +132,7 @@ export default function AddFamily({ navigation }) {
     setLoading(true);
     
     try {
+      console.log('CreateFamily - Generating unique code...');
       let isUnique = false;
       let newCode = "";
       
@@ -144,10 +148,12 @@ export default function AddFamily({ navigation }) {
         }
       }
 
+      console.log('CreateFamily - Generated unique code:', newCode);
+
       // Create new family document
       const familyData = {
         code: newCode,
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
         createdBy: userId,
         members: [{
           userId,
@@ -160,8 +166,10 @@ export default function AddFamily({ navigation }) {
         }]
       };
 
+      console.log('CreateFamily - Creating family document:', familyData);
       await addDoc(collection(db, "families"), familyData);
       
+      console.log('CreateFamily - Family created successfully');
       setLocalFamilyCode(newCode);
       setLocalFamily(familyData.members);
       
@@ -175,7 +183,7 @@ export default function AddFamily({ navigation }) {
       );
     } catch (error) {
       console.error("Error creating family:", error);
-      Alert.alert("Error", "Failed to create family. Please try again.");
+      Alert.alert("Error", `Failed to create family: ${error.message || 'Unknown error'}. Please try again.`);
     }
     
     setLoading(false);
@@ -183,6 +191,8 @@ export default function AddFamily({ navigation }) {
 
   // Join existing family using code
   const joinFamily = async () => {
+    console.log('JoinFamily - Starting with:', { joinCode, userId, userEmail, userDisplayName, myFamilyCode });
+    
     if (!joinCode.trim()) {
       Alert.alert("Error", "Please enter a family code.");
       return;
@@ -206,12 +216,14 @@ export default function AddFamily({ navigation }) {
     setLoading(true);
 
     try {
+      console.log('JoinFamily - Searching for family with code:', joinCode.trim());
       // Find family with the code
       const familiesRef = collection(db, "families");
       const q = query(familiesRef, where("code", "==", joinCode.trim()));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
+        console.log('JoinFamily - No family found with code:', joinCode.trim());
         Alert.alert("Error", "Invalid family code. Please check and try again.");
         setLoading(false);
         return;
@@ -220,9 +232,20 @@ export default function AddFamily({ navigation }) {
       const familyDoc = querySnapshot.docs[0];
       const familyData = familyDoc.data();
       
+      console.log('JoinFamily - Found family:', familyData);
+      
+      // Ensure members is an array
+      if (!familyData.members || !Array.isArray(familyData.members)) {
+        console.log('JoinFamily - Invalid family data structure');
+        Alert.alert("Error", "Invalid family data structure. Please contact support.");
+        setLoading(false);
+        return;
+      }
+      
       // Check if user is already a member
       const isAlreadyMember = familyData.members.some(member => member.userId === userId);
       if (isAlreadyMember) {
+        console.log('JoinFamily - User already a member');
         Alert.alert("Info", "You're already a member of this family.");
         setLoading(false);
         return;
@@ -240,11 +263,14 @@ export default function AddFamily({ navigation }) {
       };
 
       const updatedMembers = [...familyData.members, newMember];
+      
+      console.log('JoinFamily - Updating family with new member:', { newMember, updatedMembers });
 
       await updateDoc(familyDoc.ref, {
         members: updatedMembers
       });
 
+      console.log('JoinFamily - Successfully joined family');
       setLocalFamilyCode(joinCode.trim());
       setLocalFamily(updatedMembers);
       setJoinCode("");
@@ -252,16 +278,21 @@ export default function AddFamily({ navigation }) {
       Alert.alert("Joined Family!", "You've successfully joined the family.");
     } catch (error) {
       console.error("Error joining family:", error);
-      Alert.alert("Error", "Failed to join family. Please try again.");
+      Alert.alert("Error", `Failed to join family: ${error.message || 'Unknown error'}. Please try again.`);
     }
 
     setLoading(false);
   };
 
   // Copy code to clipboard
-  const copyToClipboard = (code) => {
-    Clipboard.setString(code);
-    Alert.alert("Copied!", "Family code copied to clipboard.");
+  const copyToClipboard = async (code) => {
+    try {
+      await Clipboard.setStringAsync(code);
+      Alert.alert("Copied!", "Family code copied to clipboard.");
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      Alert.alert("Error", "Failed to copy code to clipboard.");
+    }
   };
 
   // Get appropriate status color
