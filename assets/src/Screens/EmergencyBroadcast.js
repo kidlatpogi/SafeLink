@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   StatusBar,
   SafeAreaView,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   Modal,
@@ -18,14 +17,24 @@ import {
 } from "react-native";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { db, auth } from "../firebaseConfig";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion } from "firebase/firestore";
 import * as Location from "expo-location";
 import useLocation from "../Components/useLocation";
+import { useUser } from "../Components/UserContext";
 import HamburgerMenu from "../Components/HamburgerMenu";
-
-const { width, height } = Dimensions.get('window');
+import styles from "../Styles/EmergencyBroadcast.styles";
 
 export default function EmergencyBroadcast({ navigation }) {
+  const { 
+    userId, 
+    displayName, 
+    email, 
+    isVerifiedOfficial, 
+    canBroadcast, 
+    officialRole, 
+    barangayAssignment 
+  } = useUser();
+  
   // Use optimized location with emergency mode for high accuracy
   const { 
     location: userLocation, 
@@ -157,6 +166,19 @@ export default function EmergencyBroadcast({ navigation }) {
 
   // Handle broadcast submission
   const handleBroadcast = async () => {
+    // Check official verification first
+    if (!isVerifiedOfficial || !canBroadcast) {
+      Alert.alert(
+        "🚫 Access Denied",
+        "Only verified barangay officials can send emergency broadcasts. Please complete the official verification process.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Verify Now", onPress: () => navigation.navigate('OfficialVerification') }
+        ]
+      );
+      return;
+    }
+
     if (!message.trim()) {
       Alert.alert("⚠️ Missing Message", "Please enter a message to broadcast.");
       return;
@@ -169,7 +191,8 @@ export default function EmergencyBroadcast({ navigation }) {
       
       // Get current user info safely
       const currentUser = auth.currentUser;
-      const broadcasterName = currentUser?.displayName || 
+      const broadcasterName = displayName || 
+                            currentUser?.displayName || 
                             currentUser?.email?.split('@')[0] || 
                             'Anonymous User';
       
@@ -182,6 +205,17 @@ export default function EmergencyBroadcast({ navigation }) {
         createdAt: serverTimestamp(),
         broadcasterName,
         broadcasterId: currentUser?.uid || 'anonymous',
+        // Official verification data
+        isOfficialBroadcast: true,
+        officialRole,
+        barangayAssignment,
+        // Seen counter functionality
+        seenBy: [], // Array of user IDs who have seen this broadcast
+        seenCount: 0,
+        seenDetails: {}, // Object mapping userId to timestamp when they saw it
+        // Analytics
+        deliveredCount: 0,
+        targetRadius: 10, // km - can be made configurable
       };
 
       // Add coordinates if available
@@ -197,9 +231,13 @@ export default function EmergencyBroadcast({ navigation }) {
         broadcastData.administrativeLocation = userAdminLocation;
       }
 
-      await addDoc(collection(db, "broadcasts"), broadcastData);
+      const docRef = await addDoc(collection(db, "broadcasts"), broadcastData);
 
-      Alert.alert("✅ Broadcast Sent", "Your emergency message has been sent to all users in the area.");
+      Alert.alert(
+        "✅ Official Broadcast Sent", 
+        `Your emergency message has been sent as ${officialRole?.replace('_', ' ')} of ${barangayAssignment}.\n\nBroadcast ID: ${docRef.id}`,
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
       setMessage("");
     } catch (error) {
       console.error("Error sending broadcast: ", error);
@@ -233,290 +271,6 @@ export default function EmergencyBroadcast({ navigation }) {
 
   const currentAlert = getCurrentAlertType();
 
-  // Enhanced Styles
-  const styles = {
-    container: {
-      flex: 1,
-      backgroundColor: '#f5f5f5',
-    },
-    header: {
-      backgroundColor: '#FF6F00',
-      paddingTop: Platform.OS === 'android' ? 50 : 50,
-      paddingBottom: 16,
-      paddingHorizontal: 16,
-      elevation: 4,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-    },
-    headerContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    backButton: {
-      width: 40,
-      height: 40,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    logoWrapper: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      flex: 1,
-    },
-    logoImage: {
-      width: 32,
-      height: 32,
-      marginRight: 8,
-    },
-    logo: {
-      color: 'white',
-      fontSize: 20,
-      fontWeight: 'bold',
-    },
-    hamburgerButton: {
-      width: 40,
-      height: 40,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    headerTitle: {
-      color: 'white',
-      fontSize: 20,
-      fontWeight: 'bold',
-      flex: 1,
-      textAlign: 'center',
-    },
-    scrollContent: {
-      flex: 1,
-      padding: 16,
-      paddingBottom: 100,
-    },
-    sectionCard: {
-      backgroundColor: 'white',
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
-      elevation: 2,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    sectionIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 8,
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#333',
-      flex: 1,
-    },
-    locationRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    locationLabel: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: '#666',
-      width: 80,
-    },
-    locationText: {
-      fontSize: 14,
-      color: '#333',
-      flex: 1,
-      fontWeight: '500',
-    },
-    refreshButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#FF6F00',
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 8,
-      alignSelf: 'flex-start',
-      marginTop: 8,
-    },
-    refreshButtonText: {
-      color: 'white',
-      marginLeft: 4,
-      fontSize: 12,
-      fontWeight: '500',
-    },
-    inputLabel: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#333',
-      marginBottom: 8,
-    },
-    alertSelector: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#f8f9fa',
-      borderWidth: 1,
-      borderColor: '#e9ecef',
-      borderRadius: 10,
-      padding: 16,
-      marginBottom: 16,
-    },
-    alertIconContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-    },
-    alertTypeContent: {
-      flex: 1,
-    },
-    alertTypeText: {
-      fontSize: 16,
-      fontWeight: '500',
-      color: '#333',
-      marginBottom: 2,
-    },
-    alertDescription: {
-      fontSize: 12,
-      color: '#666',
-    },
-    dropdownIcon: {
-      color: '#666',
-    },
-    messageInput: {
-      borderWidth: 1,
-      borderColor: '#e9ecef',
-      borderRadius: 10,
-      padding: 16,
-      fontSize: 16,
-      color: '#333',
-      backgroundColor: '#f8f9fa',
-      textAlignVertical: 'top',
-      minHeight: 120,
-      marginBottom: 8,
-    },
-    characterCount: {
-      fontSize: 12,
-      color: '#6c757d',
-      textAlign: 'right',
-      marginBottom: 16,
-    },
-    broadcastButton: {
-      backgroundColor: '#FF6F00',
-      borderRadius: 10,
-      paddingVertical: 16,
-      paddingHorizontal: 24,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      elevation: 3,
-      shadowColor: '#FF6F00',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      marginBottom: 20,
-    },
-    broadcastButtonDisabled: {
-      backgroundColor: '#BDBDBD',
-      elevation: 0,
-      shadowOpacity: 0,
-    },
-    broadcastButtonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: 'bold',
-      marginLeft: 8,
-    },
-    loadingIndicator: {
-      marginRight: 8,
-    },
-    // Modal Styles
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    modalContainer: {
-      backgroundColor: 'white',
-      borderRadius: 12,
-      padding: 20,
-      width: width - 40,
-      maxHeight: height * 0.8,
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 16,
-    },
-    modalTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#333',
-      flex: 1,
-    },
-    closeButton: {
-      backgroundColor: '#6c757d',
-      paddingVertical: 12,
-      paddingHorizontal: 24,
-      borderRadius: 8,
-      alignSelf: 'center',
-      marginTop: 16,
-    },
-    closeButtonText: {
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: 16,
-    },
-    alertOption: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: '#f1f3f4',
-    },
-    alertOptionSelected: {
-      backgroundColor: '#FFF3E0',
-    },
-    alertOptionIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-    },
-    alertOptionContent: {
-      flex: 1,
-    },
-    alertOptionTitle: {
-      fontSize: 16,
-      fontWeight: '500',
-      color: '#333',
-      marginBottom: 2,
-    },
-    alertOptionDesc: {
-      fontSize: 12,
-      color: '#666',
-    },
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#FF6F00" barStyle="light-content" />
@@ -532,7 +286,10 @@ export default function EmergencyBroadcast({ navigation }) {
           </TouchableOpacity>
           <View style={styles.logoWrapper}>
             <Image source={require('../Images/SafeLink_LOGO.png')} style={styles.logoImage} />
-            <Text style={styles.logo}>SafeLink</Text>
+            <Text style={styles.logo}>
+              <Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>Safe</Text>
+              <Text style={{ color: "#E82222", fontWeight: "bold", fontSize: 18 }}>Link</Text>
+            </Text>
           </View>
           <TouchableOpacity 
             style={styles.hamburgerButton}
@@ -543,14 +300,55 @@ export default function EmergencyBroadcast({ navigation }) {
         </View>
       </View>
 
+      {/* Title */}
+      <View style={styles.titleRow}>
+        <Ionicons name="megaphone" size={24} color="#FF6F00" />
+        <Text style={styles.title}>Emergency Broadcast</Text>
+      </View>
+
       <KeyboardAvoidingView 
         style={{ flex: 1 }} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView 
-          style={styles.scrollContent}
+          style={styles.content}
           showsVerticalScrollIndicator={false}
         >
+          
+          {/* Official Verification Status */}
+          {isVerifiedOfficial ? (
+            <View style={styles.officialCard}>
+              <View style={styles.officialHeader}>
+                <Ionicons name="shield-checkmark" size={24} color="#4CAF50" />
+                <Text style={styles.officialTitle}>Verified Official</Text>
+              </View>
+              <Text style={styles.officialRole}>
+                {officialRole?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </Text>
+              <Text style={styles.officialBarangay}>{barangayAssignment}</Text>
+              <View style={styles.officialBadge}>
+                <Ionicons name="megaphone" size={16} color="#4CAF50" />
+                <Text style={styles.officialBadgeText}>Authorized to Broadcast</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.warningCard}>
+              <View style={styles.warningHeader}>
+                <Ionicons name="warning" size={24} color="#F44336" />
+                <Text style={styles.warningTitle}>Verification Required</Text>
+              </View>
+              <Text style={styles.warningDescription}>
+                Only verified barangay officials can send emergency broadcasts.
+              </Text>
+              <TouchableOpacity 
+                style={styles.verifyButton}
+                onPress={() => navigation.navigate('OfficialVerification')}
+              >
+                <Ionicons name="shield-checkmark" size={20} color="white" />
+                <Text style={styles.verifyButtonText}>Apply for Verification</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           
           {/* Location Information Card */}
           <View style={styles.sectionCard}>
