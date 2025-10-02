@@ -9,6 +9,7 @@ import {
   Pressable,
   Alert,
   StyleSheet,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -93,7 +94,11 @@ const BroadcastSettings = ({
   };
 
   return (
-    <View style={enhancedStyles.container}>
+    <ScrollView 
+      style={enhancedStyles.container}
+      contentContainerStyle={enhancedStyles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Location-Based Section */}
       <View style={enhancedStyles.section}>
         <Text style={enhancedStyles.subsectionTitle}>🗺️ Location-Based Alerts</Text>
@@ -215,15 +220,19 @@ const BroadcastSettings = ({
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 
 // Enhanced styles for better appearance and spacing
 const enhancedStyles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  scrollContent: {
     padding: 20,
-    backgroundColor: '#fff',
+    paddingBottom: 40,
   },
   sectionTitle: {
     fontSize: 22,
