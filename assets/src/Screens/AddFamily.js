@@ -31,7 +31,14 @@ import HamburgerMenu from "../Components/HamburgerMenu";
 
 export default function AddFamily({ navigation }) {
   const { userId, displayName: userDisplayName, email: userEmail } = useUser();
-  const { family: contextFamily, familyCode: contextFamilyCode, familyName, isAdmin } = useFamily();
+  const { 
+    family: contextFamily, 
+    familyCode: contextFamilyCode, 
+    familyName, 
+    isAdmin,
+    getMembersWithRemovalRequests,
+    isCreator
+  } = useFamily();
   
   const [joinCode, setJoinCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -94,6 +101,12 @@ export default function AddFamily({ navigation }) {
         
         querySnapshot.forEach((doc) => {
           const familyData = doc.data();
+          
+          // Skip archived families
+          if (familyData.isArchived) {
+            return;
+          }
+          
           const isUserMember = familyData.members?.some(member => member.userId === userId);
           
           if (isUserMember) {
@@ -142,12 +155,19 @@ export default function AddFamily({ navigation }) {
       // Generate unique code
       while (!isUnique) {
         newCode = generateFamilyCode();
-        // Check if document with this code already exists
+        // Check if document with this code already exists (including archived families)
         const familyDocRef = doc(db, "families", newCode);
         const familyDocSnap = await getDoc(familyDocRef);
         
         if (!familyDocSnap.exists()) {
           isUnique = true;
+        } else {
+          // If family exists but is archived, we can't reuse the code
+          const existingFamily = familyDocSnap.data();
+          if (existingFamily.isArchived) {
+            console.log('CreateFamily - Code already used by archived family:', newCode);
+            // Continue loop to generate new code
+          }
         }
       }
 
@@ -158,6 +178,9 @@ export default function AddFamily({ navigation }) {
         code: newCode,
         createdAt: new Date().toISOString(),
         createdBy: userId,
+        isArchived: false,
+        archivedAt: null,
+        archivedBy: null,
         members: [{
           userId,
           email: userEmail,
@@ -165,7 +188,9 @@ export default function AddFamily({ navigation }) {
           isAdmin: true,
           joinedAt: new Date().toISOString(),
           status: "I'm Safe",
-          lastUpdate: new Date().toISOString()
+          lastUpdate: new Date().toISOString(),
+          removalRequested: false,
+          removalRequestedAt: null
         }]
       };
 
@@ -234,6 +259,14 @@ export default function AddFamily({ navigation }) {
 
       const familyData = familyDocSnap.data();
       
+      // Check if family is archived
+      if (familyData.isArchived) {
+        console.log('JoinFamily - Family is archived:', joinCode.trim());
+        Alert.alert("Error", "This family is no longer active. Please contact the family admin for a new code.");
+        setLoading(false);
+        return;
+      }
+      
       console.log('JoinFamily - Found family:', familyData);
       
       // Ensure members is an array
@@ -261,7 +294,9 @@ export default function AddFamily({ navigation }) {
         isAdmin: false,
         joinedAt: new Date().toISOString(),
         status: "I'm Safe",
-        lastUpdate: new Date().toISOString()
+        lastUpdate: new Date().toISOString(),
+        removalRequested: false,
+        removalRequestedAt: null
       };
 
       const updatedMembers = [...familyData.members, newMember];
@@ -295,6 +330,163 @@ export default function AddFamily({ navigation }) {
       console.error("Failed to copy to clipboard:", error);
       Alert.alert("Error", "Failed to copy code to clipboard.");
     }
+  };
+
+  // Archive family (only family creator can do this)
+  const archiveFamily = async () => {
+    if (!myFamilyCode || !isAdmin) {
+      Alert.alert("Error", "Only the family creator can archive the family.");
+      return;
+    }
+
+    Alert.alert(
+      "Archive Family",
+      "Are you sure you want to archive this family? This will make the family code unusable and all members will lose access.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Archive",
+          style: "destructive",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const familyDocRef = doc(db, "families", myFamilyCode);
+              await updateDoc(familyDocRef, {
+                isArchived: true,
+                archivedAt: new Date().toISOString(),
+                archivedBy: userId
+              });
+
+              setLocalFamilyCode("");
+              setLocalFamily([]);
+              Alert.alert("Family Archived", "The family has been archived successfully.");
+            } catch (error) {
+              console.error("Error archiving family:", error);
+              Alert.alert("Error", "Failed to archive family. Please try again.");
+            }
+            setLoading(false);
+          }
+        }
+      ]
+    );
+  };
+
+  // Kick family member (only admin can do this)
+  const kickMember = async (memberToKick) => {
+    if (!isAdmin) {
+      Alert.alert("Error", "Only family admin can remove members.");
+      return;
+    }
+
+    if (memberToKick.userId === userId) {
+      Alert.alert("Error", "You cannot remove yourself. Use archive family instead.");
+      return;
+    }
+
+    Alert.alert(
+      "Remove Member",
+      `Are you sure you want to remove ${memberToKick.name} from the family?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const familyDocRef = doc(db, "families", myFamilyCode);
+              const updatedMembers = displayFamily.filter(member => member.userId !== memberToKick.userId);
+              
+              await updateDoc(familyDocRef, {
+                members: updatedMembers
+              });
+
+              setLocalFamily(updatedMembers);
+              Alert.alert("Member Removed", `${memberToKick.name} has been removed from the family.`);
+            } catch (error) {
+              console.error("Error removing member:", error);
+              Alert.alert("Error", "Failed to remove member. Please try again.");
+            }
+            setLoading(false);
+          }
+        }
+      ]
+    );
+  };
+
+  // Request removal from family (members can request to be removed)
+  const requestRemoval = async () => {
+    if (isAdmin) {
+      Alert.alert("Info", "As the family admin, you can archive the entire family instead.");
+      return;
+    }
+
+    Alert.alert(
+      "Request Removal",
+      "Are you sure you want to request removal from this family? The family admin will be notified.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Request",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const familyDocRef = doc(db, "families", myFamilyCode);
+              const updatedMembers = displayFamily.map(member => {
+                if (member.userId === userId) {
+                  return {
+                    ...member,
+                    removalRequested: true,
+                    removalRequestedAt: new Date().toISOString()
+                  };
+                }
+                return member;
+              });
+              
+              await updateDoc(familyDocRef, {
+                members: updatedMembers
+              });
+
+              setLocalFamily(updatedMembers);
+              Alert.alert("Request Sent", "Your removal request has been sent to the family admin.");
+            } catch (error) {
+              console.error("Error requesting removal:", error);
+              Alert.alert("Error", "Failed to send removal request. Please try again.");
+            }
+            setLoading(false);
+          }
+        }
+      ]
+    );
+  };
+
+  // Cancel removal request
+  const cancelRemovalRequest = async () => {
+    setLoading(true);
+    try {
+      const familyDocRef = doc(db, "families", myFamilyCode);
+      const updatedMembers = displayFamily.map(member => {
+        if (member.userId === userId) {
+          return {
+            ...member,
+            removalRequested: false,
+            removalRequestedAt: null
+          };
+        }
+        return member;
+      });
+      
+      await updateDoc(familyDocRef, {
+        members: updatedMembers
+      });
+
+      setLocalFamily(updatedMembers);
+      Alert.alert("Request Cancelled", "Your removal request has been cancelled.");
+    } catch (error) {
+      console.error("Error cancelling removal request:", error);
+      Alert.alert("Error", "Failed to cancel removal request. Please try again.");
+    }
+    setLoading(false);
   };
 
   // Get appropriate status color
@@ -432,20 +624,109 @@ export default function AddFamily({ navigation }) {
                   <View style={styles.memberDetails}>
                     <Text style={styles.memberName}>{member.name}</Text>
                     <Text style={styles.memberEmail}>{member.email}</Text>
-                    {member.isAdmin && (
-                      <View style={styles.adminBadge}>
-                        <Ionicons name="star" size={12} color="#FF9800" />
-                        <Text style={styles.adminText}>Admin</Text>
-                      </View>
-                    )}
+                    <View style={styles.memberBadges}>
+                      {member.isAdmin && (
+                        <View style={styles.adminBadge}>
+                          <Ionicons name="star" size={12} color="#FF9800" />
+                          <Text style={styles.adminText}>Admin</Text>
+                        </View>
+                      )}
+                      {member.removalRequested && (
+                        <View style={styles.removalBadge}>
+                          <Ionicons name="warning" size={12} color="#F44336" />
+                          <Text style={styles.removalText}>Removal Requested</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </View>
-                <View style={styles.memberStatus}>
-                  <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(member.status) }]} />
-                  <Text style={styles.statusText}>{member.status}</Text>
+                <View style={styles.memberActions}>
+                  <View style={styles.memberStatus}>
+                    <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(member.status) }]} />
+                    <Text style={styles.statusText}>{member.status}</Text>
+                  </View>
+                  
+                  {/* Admin Actions */}
+                  {isAdmin && member.userId !== userId && (
+                    <TouchableOpacity 
+                      style={styles.kickButton}
+                      onPress={() => kickMember(member)}
+                      disabled={loading}
+                    >
+                      <Ionicons name="person-remove" size={16} color="#F44336" />
+                      <Text style={styles.kickButtonText}>Remove</Text>
+                    </TouchableOpacity>
+                  )}
+                  
+                  {/* Member's own actions */}
+                  {member.userId === userId && !isAdmin && (
+                    <TouchableOpacity 
+                      style={[styles.requestButton, member.removalRequested && styles.cancelRequestButton]}
+                      onPress={member.removalRequested ? cancelRemovalRequest : requestRemoval}
+                      disabled={loading}
+                    >
+                      <Ionicons 
+                        name={member.removalRequested ? "close-circle" : "exit"} 
+                        size={16} 
+                        color={member.removalRequested ? "#FF9800" : "#F44336"} 
+                      />
+                      <Text style={[styles.requestButtonText, member.removalRequested && styles.cancelRequestButtonText]}>
+                        {member.removalRequested ? "Cancel Request" : "Request Removal"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Family Management Section - Only for Admins */}
+        {myFamilyCode && isAdmin && (
+          <View style={styles.managementSection}>
+            <View style={styles.codeSectionHeader}>
+              <Ionicons name="settings" size={20} color="#F44336" />
+              <Text style={styles.codeSectionTitle}>Family Management</Text>
+            </View>
+            
+            {/* Pending Removal Requests */}
+            {getMembersWithRemovalRequests && getMembersWithRemovalRequests().length > 0 && (
+              <View style={styles.removalRequestsSection}>
+                <Text style={styles.removalRequestsTitle}>
+                  ⚠️ Pending Removal Requests ({getMembersWithRemovalRequests().length})
+                </Text>
+                {getMembersWithRemovalRequests().map((member, index) => (
+                  <View key={index} style={styles.removalRequestCard}>
+                    <View style={styles.requestMemberInfo}>
+                      <Ionicons name="person-circle" size={24} color="#F44336" />
+                      <Text style={styles.requestMemberName}>{member.name}</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.approveRemovalButton}
+                      onPress={() => kickMember(member)}
+                      disabled={loading}
+                    >
+                      <Ionicons name="checkmark" size={16} color="white" />
+                      <Text style={styles.approveRemovalText}>Approve</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+            
+            <TouchableOpacity 
+              style={[styles.archiveButton, loading && styles.disabledButton]}
+              onPress={archiveFamily}
+              disabled={loading}
+            >
+              <Ionicons name="archive" size={20} color="white" />
+              <Text style={styles.archiveButtonText}>
+                {loading ? "Archiving..." : "Archive Family"}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.archiveWarning}>
+              ⚠️ Archiving will make the family code unusable and remove all members' access. This action cannot be undone.
+            </Text>
           </View>
         )}
       </ScrollView>

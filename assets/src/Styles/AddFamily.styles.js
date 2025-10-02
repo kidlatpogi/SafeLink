@@ -253,8 +253,36 @@ export default StyleSheet.create({
     fontWeight: "600",
     marginLeft: 2,
   },
+  
+  // 🔹 Member Badges
+  memberBadges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 2,
+  },
+  removalBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFEBEE",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 4,
+  },
+  removalText: {
+    fontSize: 10,
+    color: "#F44336",
+    fontWeight: "600",
+    marginLeft: 2,
+  },
+  
+  // 🔹 Member Actions
+  memberActions: {
+    alignItems: "flex-end",
+  },
   memberStatus: {
     alignItems: "center",
+    marginBottom: 8,
   },
   statusIndicator: {
     width: 12,
@@ -266,5 +294,129 @@ export default StyleSheet.create({
     fontSize: 12,
     color: "#666",
     fontWeight: "500",
+  },
+  
+  // 🔹 Action Buttons
+  kickButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFEBEE",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F44336",
+  },
+  kickButtonText: {
+    fontSize: 11,
+    color: "#F44336",
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  requestButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFEBEE",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#F44336",
+  },
+  requestButtonText: {
+    fontSize: 11,
+    color: "#F44336",
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  cancelRequestButton: {
+    backgroundColor: "#FFF3E0",
+    borderColor: "#FF9800",
+  },
+  cancelRequestButtonText: {
+    color: "#FF9800",
+  },
+  
+  // 🔹 Management Section
+  managementSection: {
+    backgroundColor: "#FFEBEE",
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: "#FFCDD2",
+  },
+  
+  // 🔹 Removal Requests
+  removalRequestsSection: {
+    backgroundColor: "#FFF3E0",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#FFCC02",
+  },
+  removalRequestsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#E65100",
+    marginBottom: 8,
+  },
+  removalRequestCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "white",
+    padding: 8,
+    borderRadius: 6,
+    marginVertical: 2,
+  },
+  requestMemberInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  requestMemberName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginLeft: 8,
+  },
+  approveRemovalButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  approveRemovalText: {
+    fontSize: 12,
+    color: "white",
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  
+  archiveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F44336",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  archiveButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  archiveWarning: {
+    fontSize: 12,
+    color: "#D32F2F",
+    textAlign: "center",
+    fontStyle: "italic",
+    marginTop: 4,
   },
 });

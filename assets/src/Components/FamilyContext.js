@@ -50,6 +50,12 @@ export const FamilyProvider = ({ children }) => {
         
         querySnapshot.forEach((familyDoc) => {
           const familyDocData = familyDoc.data();
+          
+          // Skip archived families
+          if (familyDocData.isArchived) {
+            return;
+          }
+          
           const memberFound = familyDocData.members?.find(member => member.userId === userId);
           
           if (memberFound) {
@@ -231,6 +237,17 @@ export const FamilyProvider = ({ children }) => {
         console.error('FamilyContext - Error updating user status:', error);
         return false;
       }
+    },
+
+    // Get members with pending removal requests (admin only)
+    getMembersWithRemovalRequests: () => {
+      return familyData.family.filter(member => member.removalRequested === true);
+    },
+
+    // Check if current user is the family creator
+    isCreator: () => {
+      const currentUser = familyData.family.find(member => member.userId === userId);
+      return currentUser?.isAdmin && familyData.createdBy === userId;
     }
   };
 
