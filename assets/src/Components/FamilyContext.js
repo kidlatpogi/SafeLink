@@ -73,6 +73,13 @@ export const FamilyProvider = ({ children }) => {
               // Find current user in family members
               const currentUserMember = familyDocData.members?.find(member => member.userId === userId);
               
+              console.log('FamilyContext - Processing family update:', {
+                familyId: userFamily.id,
+                membersCount: familyDocData.members?.length || 0,
+                currentUserMember,
+                familyCode: familyDocData.code
+              });
+              
               // Enrich family members with additional data
               const enrichedMembers = await Promise.all(
                 (familyDocData.members || []).map(async (member) => {
@@ -142,7 +149,7 @@ export const FamilyProvider = ({ children }) => {
 
               setFamilyData({
                 family: sortedMembers,
-                familyCode: familyDocData.familyCode || '',
+                familyCode: familyDocData.code || familyDocData.familyCode || '',
                 familyName: familyDocData.familyName || '',
                 isAdmin: currentUserMember?.isAdmin || false,
                 userStatus: currentUserMember?.status || 'Not Yet Responded'
