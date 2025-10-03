@@ -29,6 +29,9 @@ import FamilyCheckIn from "./assets/src/Screens/FamilyCheckIn";
 import AddFamily from "./assets/src/Screens/AddFamily";
 import FamilyDetails from "./assets/src/Screens/FamilyDetails";
 import Go_Bag from "./assets/src/Screens/Go_Bag";
+import OfficialVerification from "./assets/src/Screens/OfficialVerification";
+import AdminPanel from "./assets/src/Screens/AdminPanel";
+import BroadcastAnalytics from "./assets/src/Screens/BroadcastAnalytics";
 
 const Stack = createStackNavigator();
 
@@ -43,12 +46,10 @@ export default function App() {
 
   const checkProfileComplete = async (user) => {
     try {
-      console.log("Checking profile completeness for user:", user.uid);
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
       
       if (!userDoc.exists()) {
-        console.log("User document doesn't exist, profile incomplete");
         return false;
       }
 
@@ -56,7 +57,6 @@ export default function App() {
       
       // Check if profile exists and has required fields
       if (!userData.profile) {
-        console.log("No profile object found, profile incomplete");
         return false;
       }
 
@@ -68,7 +68,6 @@ export default function App() {
         return value && value.toString().trim() !== '';
       });
 
-      console.log("Profile completeness:", { hasRequiredFields, profile });
       return hasRequiredFields;
     } catch (error) {
       console.error("Error checking profile:", error);
@@ -87,10 +86,8 @@ export default function App() {
           const profileComplete = await checkProfileComplete(user);
           
           if (profileComplete) {
-            console.log("Profile complete, navigating to Home");
             setInitialRoute("Home");
           } else {
-            console.log("Profile incomplete, navigating to User_Form");
             setInitialRoute("User_Form");
           }
         } else {
@@ -151,6 +148,9 @@ export default function App() {
             <Stack.Screen name="AddFamily" component={AddFamily} />
             <Stack.Screen name="FamilyDetails" component={FamilyDetails} />
             <Stack.Screen name="Go_Bag" component={Go_Bag} />
+            <Stack.Screen name="OfficialVerification" component={OfficialVerification} />
+            <Stack.Screen name="AdminPanel" component={AdminPanel} />
+            <Stack.Screen name="BroadcastAnalytics" component={BroadcastAnalytics} />
           </Stack.Navigator>
         </NavigationContainer>
       </FamilyProvider>

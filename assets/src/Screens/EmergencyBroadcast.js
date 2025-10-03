@@ -65,7 +65,7 @@ export default function EmergencyBroadcast({ navigation }) {
   // Alert type options with enhanced design
   const alertTypes = [
     { 
-      icon: "alert-triangle", 
+      icon: "exclamation-triangle", 
       iconLibrary: "FontAwesome5",
       label: "Emergency Alert", 
       color: "#FF6F00",
@@ -97,6 +97,14 @@ export default function EmergencyBroadcast({ navigation }) {
       description: "Fire emergency"
     },
     { 
+      icon: "home", 
+      iconLibrary: "FontAwesome5",
+      label: "Earthquake", 
+      color: "#FF6F00",
+      bgColor: "#F5F5DC",
+      description: "Seismic activity alert"
+    },
+    { 
       icon: "heartbeat", 
       iconLibrary: "FontAwesome5",
       label: "Medical Emergency", 
@@ -113,7 +121,7 @@ export default function EmergencyBroadcast({ navigation }) {
       description: "Electrical service disruption"
     },
     { 
-      icon: "shield-alt", 
+      icon: "shield", 
       iconLibrary: "FontAwesome5",
       label: "Security Alert", 
       color: "#FF6F00",
@@ -148,7 +156,6 @@ export default function EmergencyBroadcast({ navigation }) {
         setBarangay(place.district || place.subregion || place.name || "Unknown Barangay");
       }
     } catch (err) {
-      console.log("Reverse geocode failed:", err);
       setLocation("Unknown City");
       setBarangay("Unknown Barangay");
     } finally {
@@ -233,14 +240,17 @@ export default function EmergencyBroadcast({ navigation }) {
 
       const docRef = await addDoc(collection(db, "broadcasts"), broadcastData);
 
+      console.log("Emergency broadcast posted successfully");
+
       Alert.alert(
         "✅ Official Broadcast Sent", 
-        `Your emergency message has been sent as ${officialRole?.replace('_', ' ')} of ${barangayAssignment}.\n\nBroadcast ID: ${docRef.id}`,
+        `Your emergency message has been sent as ${officialRole?.replace('_', ' ')} of ${typeof barangayAssignment === 'object' 
+          ? `${barangayAssignment.barangay}, ${barangayAssignment.municipality}, ${barangayAssignment.province}` 
+          : barangayAssignment}.\n\nBroadcast ID: ${docRef.id}`,
         [{ text: "OK", onPress: () => navigation.goBack() }]
       );
       setMessage("");
     } catch (error) {
-      console.error("Error sending broadcast: ", error);
       Alert.alert("❌ Error", "Failed to send broadcast. Please try again.");
     } finally {
       setIsBroadcasting(false);
@@ -325,7 +335,11 @@ export default function EmergencyBroadcast({ navigation }) {
               <Text style={styles.officialRole}>
                 {officialRole?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </Text>
-              <Text style={styles.officialBarangay}>{barangayAssignment}</Text>
+              <Text style={styles.officialBarangay}>
+                {typeof barangayAssignment === 'object' 
+                  ? `${barangayAssignment.barangay}, ${barangayAssignment.municipality}, ${barangayAssignment.province}` 
+                  : barangayAssignment}
+              </Text>
               <View style={styles.officialBadge}>
                 <Ionicons name="megaphone" size={16} color="#4CAF50" />
                 <Text style={styles.officialBadgeText}>Authorized to Broadcast</Text>

@@ -129,11 +129,9 @@ export default function User_Form({ navigation, route }) {
           } else {
             // No existing profile - this is first-time setup
             setIsEditMode(false);
-            console.log("First-time setup mode");
           }
         }
       } catch (error) {
-        console.log("Error checking existing profile:", error);
         setIsEditMode(false);
       }
     };
@@ -231,13 +229,7 @@ export default function User_Form({ navigation, route }) {
           completedAt: new Date().toISOString()
         }));
 
-        console.log("User profile created in Firestore:", {
-          uid: user.uid,
-          displayName: displayName,
-          phoneNumber: phoneNumber
-        });
-
-        console.log("Profile save successful, navigating...", { isEditMode, userId: user.uid });
+        console.log("Account updated successfully:", { uid: user.uid, isEditMode });
 
         // Navigate to Home
         Alert.alert(
@@ -248,16 +240,12 @@ export default function User_Form({ navigation, route }) {
               text: "Continue",
               onPress: () => {
                 try {
-                  console.log("Navigation triggered", { isEditMode });
-                  
                   // Small delay to ensure Firestore update is processed
                   setTimeout(() => {
                     try {
                       if (isEditMode) {
-                        console.log("Going back to Home (edit mode)");
                         navigation.goBack(); // Go back to Home if editing
                       } else {
-                        console.log("Resetting navigation to Home (first-time setup)");
                         navigation.reset({
                           index: 0,
                           routes: [{ name: "Home" }],
@@ -280,7 +268,6 @@ export default function User_Form({ navigation, route }) {
         );
       }
     } catch (error) {
-      console.log("Profile update error:", error);
       setError("Failed to save profile. Please try again.");
     } finally {
       setIsLoading(false);

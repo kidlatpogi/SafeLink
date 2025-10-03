@@ -256,7 +256,11 @@ export default function AdminPanel({ navigation }) {
                   </View>
                   <View style={styles.detailRow}>
                     <Ionicons name="location" size={16} color="#666" />
-                    <Text style={styles.detailText}>{request.barangayAssignment}</Text>
+                    <Text style={styles.detailText}>
+                      {typeof request.barangayAssignment === 'object' 
+                        ? `${request.barangayAssignment.barangay}, ${request.barangayAssignment.municipality}, ${request.barangayAssignment.province}` 
+                        : request.barangayAssignment}
+                    </Text>
                   </View>
                   <View style={styles.detailRow}>
                     <Ionicons name="call" size={16} color="#666" />
@@ -311,7 +315,9 @@ export default function AdminPanel({ navigation }) {
                     {selectedRequest.displayName} - {selectedRequest.officialRoleLabel}
                   </Text>
                   <Text style={styles.reviewRequestDetails}>
-                    {selectedRequest.barangayAssignment}
+                    {typeof selectedRequest.barangayAssignment === 'object' 
+                      ? `${selectedRequest.barangayAssignment.barangay}, ${selectedRequest.barangayAssignment.municipality}, ${selectedRequest.barangayAssignment.province}` 
+                      : selectedRequest.barangayAssignment}
                   </Text>
                   
                   <View style={styles.reviewNotesSection}>

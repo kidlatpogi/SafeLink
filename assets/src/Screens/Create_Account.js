@@ -116,7 +116,6 @@ export default function Create_Account({ navigation }) {
     if (response?.type === "success") {
       (async () => {
         try {
-          console.log("Google OAuth response:", response);
           const { id_token, access_token } = response.params;
           
           if (!id_token) {
@@ -127,17 +126,16 @@ export default function Create_Account({ navigation }) {
           
           const credential = GoogleAuthProvider.credential(id_token, access_token);
           await signInWithCredential(auth, credential);
+          console.log("User logged in via Google OAuth");
           navigation.reset({
             index: 0,
             routes: [{ name: "User_Form" }], // New Google users go to User_Form
           });
         } catch (err) {
-          console.log("Google login error:", err);
           setError("Google login failed. Please try again.");
         }
       })();
     } else if (response?.type === "error") {
-      console.log("Google OAuth error:", response.error);
       setError("Google authentication was cancelled or failed.");
     }
   }, [response, navigation]);
@@ -208,15 +206,13 @@ export default function Create_Account({ navigation }) {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      console.log("User account created:", user.uid);
+      console.log("Account created successfully:", user.uid);
       
       // Send email verification
       await sendEmailVerification(user, {
         url: 'https://disaster-preparedness-b21f9.firebaseapp.com/', // Your app's URL
         handleCodeInApp: false,
       });
-
-      console.log("Email verification sent to:", user.email);
       
       // Sign out the user immediately after account creation and verification email sent
       await auth.signOut();
@@ -233,8 +229,6 @@ export default function Create_Account({ navigation }) {
         ]
       );
     } catch (error) {
-      console.log("Create account error:", error);
-      
       // Handle specific Firebase errors
       let errorMessage = "An error occurred while creating your account.";
       
@@ -276,7 +270,6 @@ export default function Create_Account({ navigation }) {
         await signInWithPopup(auth, provider);
         navigation.reset({ index: 0, routes: [{ name: "User_Form" }] });
       } catch (err) {
-        console.log("Web Google login error:", err);
         setError("Google login failed. Please try again.");
       }
     } else {

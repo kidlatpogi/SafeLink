@@ -17,16 +17,12 @@ export const checkUserProfileCompleteAndNavigate = async (user, setIsLoading, na
       const isProfileComplete = checkRequiredFields(userData);
       
       if (isProfileComplete) {
-        console.log("User profile is complete, navigating to Home");
-        
         // Clear any email verification state before navigating
         setHasUnverifiedEmail(false);
         
         // Navigate to Home
         navigation.navigate("Home");
       } else {
-        console.log("User profile is incomplete, navigating to User_Form");
-        
         // Clear any email verification state before navigating
         setHasUnverifiedEmail(false);
         
@@ -34,8 +30,6 @@ export const checkUserProfileCompleteAndNavigate = async (user, setIsLoading, na
         navigation.navigate("User_Form");
       }
     } else {
-      console.log("User document doesn't exist, navigating to User_Form");
-      
       // Clear any email verification state before navigating
       setHasUnverifiedEmail(false);
       
@@ -53,7 +47,6 @@ export const checkUserProfileCompleteAndNavigate = async (user, setIsLoading, na
 const checkRequiredFields = (userData) => {
   // Check if profile exists and has basic info
   if (!userData.profile) {
-    console.log("No profile object found");
     return false;
   }
 
@@ -67,20 +60,14 @@ const checkRequiredFields = (userData) => {
   
   // Check email and phone from main userData object
   if (!userData.email || !userData.phoneNumber) {
-    console.log("Missing email or phone number");
     return false;
   }
   
   const hasRequiredFields = requiredFields.every(field => {
     const value = profile[field];
-    const isValid = value && value.toString().trim() !== '';
-    if (!isValid) {
-      console.log(`Missing required field: ${field}`);
-    }
-    return isValid;
+    return value && value.toString().trim() !== '';
   });
 
-  console.log("Profile completeness check:", { hasRequiredFields, profile });
   return hasRequiredFields;
 };
 

@@ -1,3 +1,4 @@
+
 // LoginComponents/GoogleAuthHandler.js
 import React from 'react';
 import { Platform } from 'react-native';
@@ -44,7 +45,6 @@ export const useGoogleAuthHandler = (navigation, setError) => {
 
 const handleGoogleAuthSuccess = async (response, navigation, setError) => {
   try {
-    console.log("Google OAuth response:", response);
     const { id_token, access_token } = response.params;
     
     if (!id_token) {
@@ -57,10 +57,11 @@ const handleGoogleAuthSuccess = async (response, navigation, setError) => {
     const userCredential = await signInWithCredential(auth, credential);
     const user = userCredential.user;
 
+    console.log("User logged in via Google:", user.email);
+
     // Check user profile and navigate accordingly
     await checkUserProfileAndNavigate(user, navigation);
   } catch (err) {
-    console.log("Google login error:", err);
     setError("Google login failed. Please try again.");
   }
 };
@@ -76,7 +77,6 @@ const handleWebGoogleSignIn = async (navigation, setError) => {
     await checkUserProfileAndNavigate(user, navigation);
     return true;
   } catch (err) {
-    console.log("Web Google login error:", err);
     setError("Google login failed. Please try again.");
     return false;
   }
@@ -88,14 +88,12 @@ const checkUserProfileAndNavigate = async (user, navigation) => {
     const userDoc = await getDoc(userDocRef);
     
     const destination = userDoc.exists() ? "Home" : "User_Form";
-    console.log(`${userDoc.exists() ? 'Returning' : 'First-time'} Google user, redirecting to ${destination}`);
     
     navigation.reset({
       index: 0,
       routes: [{ name: destination }],
     });
   } catch (firestoreError) {
-    console.log("Firestore error with Google login:", firestoreError);
     navigation.reset({
       index: 0,
       routes: [{ name: "User_Form" }],

@@ -23,13 +23,12 @@ export const handleEmailLogin = async (
 
   try {
     setIsLoading(true);
-    console.log("Attempting email/password login for:", email);
     
     // Sign in with email and password
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    console.log("Email/password login successful for:", user.email);
+    console.log("User logged in:", user.email);
     
     // Check if email is verified
     if (!user.emailVerified) {
@@ -105,7 +104,7 @@ const handleLoginError = (error) => {
       errorMessage = "Network error. Please check your internet connection.";
       break;
     default:
-      console.log("Unhandled login error:", error.code, error.message);
+      // Error handling for unknown login errors
       break;
   }
   
