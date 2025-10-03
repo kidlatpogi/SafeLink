@@ -23,10 +23,10 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     if (location) {
       try {
         await updateUserLocationInFirestore(location.coords);
-        console.log('📍 Location updated:', {
-          latitude: location.coords.latitude.toFixed(6),
-          longitude: location.coords.longitude.toFixed(6),
-          accuracy: location.coords.accuracy
+        console.log('Location updated:', {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          timestamp: new Date().toLocaleTimeString()
         });
       } catch (updateError) {
         console.error('Failed to update location in Firestore:', updateError);
@@ -75,7 +75,6 @@ class LocationService {
       // Check if location services are enabled first
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       if (!servicesEnabled) {
-        console.error('❌ Location services are disabled on device');
         return { foreground: false, background: false, servicesEnabled: false };
       }
 
@@ -83,7 +82,6 @@ class LocationService {
       const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
       
       if (foregroundStatus !== 'granted') {
-        console.error('❌ Foreground location permission denied');
         return { 
           foreground: false, 
           background: false, 
@@ -103,7 +101,7 @@ class LocationService {
 
       return result;
     } catch (error) {
-      console.error('❌ Permission request error:', error);
+      console.error('Permission request error:', error);
       return { 
         foreground: false, 
         background: false, 
@@ -128,9 +126,6 @@ class LocationService {
       // Start background tracking if permission granted
       if (permissions.background) {
         await this.startBackgroundTracking(options);
-        console.log('Background location tracking started');
-      } else {
-        console.log('Background permission not granted, using foreground tracking only');
       }
 
       this.isTracking = true;
@@ -158,13 +153,13 @@ class LocationService {
       async (location) => {
         try {
           await updateUserLocationInFirestore(location.coords);
-          console.log('Foreground location updated:', {
-            lat: location.coords.latitude.toFixed(6),
-            lng: location.coords.longitude.toFixed(6),
-            accuracy: location.coords.accuracy
+          console.log('Location updated:', {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            timestamp: new Date().toLocaleTimeString()
           });
         } catch (error) {
-          console.error('Foreground location update error:', error);
+          console.error('Location update error:', error);
         }
       }
     );
@@ -210,7 +205,6 @@ class LocationService {
       }
 
       this.isTracking = false;
-      console.log('Location tracking stopped');
       return true;
     } catch (error) {
       console.error('Failed to stop location tracking:', error);

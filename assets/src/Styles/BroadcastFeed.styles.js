@@ -119,13 +119,25 @@ export default StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    elevation: 3,
+    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    borderWidth: 1,
-    borderColor: "#f1f3f4",
+    shadowRadius: 2,
+  },
+  
+  // Official broadcast styling
+  officialBroadcastItem: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
+    backgroundColor: "#F8FFF8",
+  },
+  
+  // Unseen broadcast styling
+  unseenBroadcastItem: {
+    borderWidth: 2,
+    borderColor: "#FF4444",
+    backgroundColor: "#FFF5F5",
   },
   
   broadcastHeader: {
@@ -133,6 +145,18 @@ export default StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
+  },
+  
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  
+  analyticsButton: {
+    backgroundColor: "#E3F2FD",
+    padding: 6,
+    borderRadius: 6,
   },
   
   emergencyTypeContainer: {
@@ -179,9 +203,42 @@ export default StyleSheet.create({
     marginTop: 8,
   },
   
+  broadcasterInfo: {
+    flex: 1,
+  },
+  
   broadcasterName: {
     fontSize: 14,
     color: "#666",
+    fontWeight: "500",
+  },
+  
+  barangayText: {
+    fontSize: 12,
+    color: "#888",
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+  
+  broadcastStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  
+  seenCounter: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  
+  seenCountText: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 4,
     fontWeight: "500",
   },
   
@@ -189,6 +246,29 @@ export default StyleSheet.create({
     fontSize: 12,
     color: "#999",
     fontWeight: "500",
+  },
+  
+  // Official broadcast badges
+  officialBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  
+  officialBadgeText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+    marginLeft: 2,
+  },
+  
+  // Unread indicator
+  unreadIndicator: {
+    marginLeft: 8,
   },
   
   // Empty state

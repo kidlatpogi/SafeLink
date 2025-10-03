@@ -13,8 +13,6 @@ export const handleEmailVerification = async (
   setLastResendTime,
   setHasUnverifiedEmail
 ) => {
-  console.log("Email not verified for user:", user.email);
-  
   // Set state to show resend button in UI
   setHasUnverifiedEmail(true);
   
@@ -56,7 +54,6 @@ const resendVerificationEmail = async (email, password, setResendAttempts, setLa
     
     Alert.alert("Verification Sent", "We've sent another verification email. Please check your inbox.");
   } catch (error) {
-    console.log("Error resending verification:", error);
     Alert.alert("Error", "Failed to resend verification email. Please try again.");
   }
 };

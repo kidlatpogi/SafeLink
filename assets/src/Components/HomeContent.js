@@ -266,7 +266,7 @@ const HomeContent = ({ displayName, navigation }) => {
                     {member.isAdmin && (
                       <View style={styles.familyAdminBadge}>
                         <Ionicons name="star" size={10} color="#FF9800" />
-                        <Text style={styles.familyAdminText}>Admin</Text>
+                        <Text style={styles.familyAdminText}>Family Creator</Text>
                       </View>
                     )}
                   </View>

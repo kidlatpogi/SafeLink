@@ -14,10 +14,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from '@react-navigation/native';
-import { collection, query, orderBy, onSnapshot, where, doc, getDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, where, doc, getDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import * as Location from "expo-location";
 import { db, auth } from "../firebaseConfig";
 import useLocation from "../Components/useLocation";
+import { useUser } from "../Components/UserContext";
 import { getBroadcastSettings } from "../Components/BroadcastSettings";
 import styles from "../Styles/BroadcastFeed.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
@@ -62,6 +63,8 @@ const matchesAdministrativeArea = (broadcastLocation, userAdminLocation) => {
 };
 
 export default function BroadcastFeed({ navigation }) {
+  const { userId, isVerifiedOfficial } = useUser();
+  
   // Use optimized location for broadcast filtering
   const { 
     location: userLocation, 
@@ -356,48 +359,127 @@ export default function BroadcastFeed({ navigation }) {
     }
   };
 
-  const renderBroadcastItem = ({ item }) => (
-    <TouchableOpacity style={styles.broadcastItem}>
-      <View style={styles.broadcastHeader}>
-        <View style={styles.emergencyTypeContainer}>
-          <Ionicons 
-            name={getEmergencyIcon(item.emergencyType)} 
-            size={24} 
-            color={getEmergencyColor(item.emergencyType)} 
-          />
-          <Text style={[styles.emergencyType, { color: getEmergencyColor(item.emergencyType) }]}>
-            {item.emergencyType?.toUpperCase() || 'EMERGENCY'}
-          </Text>
+  // Mark broadcast as seen by current user
+  const markAsSeen = async (broadcastId) => {
+    if (!userId || !broadcastId) return;
+    
+    try {
+      const broadcastRef = doc(db, 'broadcasts', broadcastId);
+      await updateDoc(broadcastRef, {
+        seenBy: arrayUnion(userId),
+        seenCount: increment(1),
+        [`seenDetails.${userId}`]: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error marking broadcast as seen:', error);
+    }
+  };
+
+  const renderBroadcastItem = ({ item }) => {
+    const hasUserSeen = item.seenBy?.includes(userId);
+    const isOfficialBroadcast = item.isOfficialBroadcast;
+    const isUsersBroadcast = isVerifiedOfficial && item.broadcasterId === userId;
+    
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.broadcastItem,
+          isOfficialBroadcast && styles.officialBroadcastItem,
+          !hasUserSeen && styles.unseenBroadcastItem
+        ]}
+        onPress={() => {
+          if (!hasUserSeen) {
+            markAsSeen(item.id);
+          }
+        }}
+      >
+        <View style={styles.broadcastHeader}>
+          <View style={styles.emergencyTypeContainer}>
+            <Ionicons 
+              name={getEmergencyIcon(item.emergencyType)} 
+              size={24} 
+              color={getEmergencyColor(item.emergencyType)} 
+            />
+            <Text style={[styles.emergencyType, { color: getEmergencyColor(item.emergencyType) }]}>
+              {item.emergencyType?.toUpperCase() || 'EMERGENCY'}
+            </Text>
+            {/* Official Badge */}
+            {isOfficialBroadcast && (
+              <View style={styles.officialBadge}>
+                <Ionicons name="shield-checkmark" size={14} color="#4CAF50" />
+                <Text style={styles.officialBadgeText}>OFFICIAL</Text>
+              </View>
+            )}
+            {/* Unread indicator */}
+            {!hasUserSeen && (
+              <View style={styles.unreadIndicator}>
+                <Ionicons name="ellipse" size={8} color="#FF4444" />
+              </View>
+            )}
+          </View>
+          <View style={styles.headerActions}>
+            <Text style={styles.timeAgo}>{formatTimeAgo(item.timestamp)}</Text>
+            {/* Analytics button for official's own broadcasts */}
+            {isUsersBroadcast && (
+              <TouchableOpacity 
+                style={styles.analyticsButton}
+                onPress={() => navigation.navigate('BroadcastAnalytics', { broadcastId: item.id })}
+              >
+                <Ionicons name="analytics" size={16} color="#2196F3" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-        <Text style={styles.timeAgo}>{formatTimeAgo(item.timestamp)}</Text>
-      </View>
-      
-      <Text style={styles.broadcastMessage}>{item.message}</Text>
-      
-      {item.location && (
-        <View style={styles.locationContainer}>
-          <Ionicons name="location" size={16} color="#666" />
-          <Text style={styles.locationText}>{item.location}</Text>
-        </View>
-      )}
-      
-      <View style={styles.broadcastFooter}>
-        <Text style={styles.broadcasterName}>
-          {item.broadcasterName || 'Anonymous'}
-        </Text>
-        {item.coordinates && userLocation && (
-          <Text style={styles.distanceText}>
-            {calculateDistance(
-              userLocation.latitude,
-              userLocation.longitude,
-              item.coordinates.latitude,
-              item.coordinates.longitude
-            ).toFixed(1)} km away
-          </Text>
+        
+        <Text style={styles.broadcastMessage}>{item.message}</Text>
+        
+        {item.location && (
+          <View style={styles.locationContainer}>
+            <Ionicons name="location" size={16} color="#666" />
+            <Text style={styles.locationText}>{item.location}</Text>
+          </View>
         )}
-      </View>
-    </TouchableOpacity>
-  );
+        
+        <View style={styles.broadcastFooter}>
+          <View style={styles.broadcasterInfo}>
+            <Text style={styles.broadcasterName}>
+              {isOfficialBroadcast && item.officialRole 
+                ? `${item.broadcasterName} - ${item.officialRole.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`
+                : item.broadcasterName || 'Anonymous'
+              }
+            </Text>
+            {item.barangayAssignment && (
+              <Text style={styles.barangayText}>
+                {typeof item.barangayAssignment === 'object' 
+                  ? `${item.barangayAssignment.barangay}, ${item.barangayAssignment.municipality}, ${item.barangayAssignment.province}` 
+                  : item.barangayAssignment}
+              </Text>
+            )}
+          </View>
+          
+          <View style={styles.broadcastStats}>
+            {/* Seen counter */}
+            <View style={styles.seenCounter}>
+              <Ionicons name="eye" size={14} color="#666" />
+              <Text style={styles.seenCountText}>{item.seenCount || 0}</Text>
+            </View>
+            
+            {/* Distance */}
+            {item.coordinates && userLocation && (
+              <Text style={styles.distanceText}>
+                {calculateDistance(
+                  userLocation.latitude,
+                  userLocation.longitude,
+                  item.coordinates.latitude,
+                  item.coordinates.longitude
+                ).toFixed(1)} km away
+              </Text>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (

@@ -74,17 +74,9 @@ export const FamilyProvider = ({ children }) => {
           unsubscribeFamily = onSnapshot(familyDocRef, async (doc) => {
             if (doc.exists()) {
               const familyDocData = doc.data();
-              console.log("FamilyContext - Family data updated:", familyDocData);
               
               // Find current user in family members
               const currentUserMember = familyDocData.members?.find(member => member.userId === userId);
-              
-              console.log('FamilyContext - Processing family update:', {
-                familyId: userFamily.id,
-                membersCount: familyDocData.members?.length || 0,
-                currentUserMember,
-                familyCode: familyDocData.code
-              });
               
               // Enrich family members with additional data
               const enrichedMembers = await Promise.all(
@@ -129,7 +121,7 @@ export const FamilyProvider = ({ children }) => {
                         locationData = emergencyLocation; // Override with emergency location
                       }
                     } catch (locationError) {
-                      console.log("FamilyContext - No emergency location for:", member.userId);
+                      // No emergency location found for this member
                     }
 
                     return {
@@ -165,7 +157,6 @@ export const FamilyProvider = ({ children }) => {
 
           setLoading(false);
         } else {
-          console.log("FamilyContext - No family found for user");
           setFamilyData({
             family: [],
             familyCode: '',

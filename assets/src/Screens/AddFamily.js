@@ -116,7 +116,7 @@ export default function AddFamily({ navigation }) {
         setLocalFamily([]);
       }
     } catch (err) {
-      // Failed to refresh family data silently
+      // Silent fail for family data refresh
     }
   };
 
@@ -162,7 +162,7 @@ export default function AddFamily({ navigation }) {
           setLocalFamily(userFamily.members || []);
         }
       } catch (err) {
-        // Failed to fetch family data silently
+        // Silent fail for family data fetch
       }
     };
     
@@ -231,6 +231,8 @@ export default function AddFamily({ navigation }) {
 
       const familyDocRef = doc(db, "families", newCode);
       await setDoc(familyDocRef, familyData);
+      
+      console.log("Family created successfully:", { familyCode: newCode, memberCount: 1 });
       
       setLocalFamilyCode(newCode);
       setLocalFamily(familyData.members);
@@ -322,6 +324,8 @@ export default function AddFamily({ navigation }) {
       const updatedMembers = [...familyData.members, newMember];
       
       await updateDoc(familyDocRef, { members: updatedMembers });
+
+      console.log("Family member added successfully:", { familyCode: joinCode.trim(), newMember: userDisplayName });
 
       setLocalFamilyCode(joinCode.trim());
       setLocalFamily(updatedMembers);

@@ -229,11 +229,7 @@ export default function User_Form({ navigation, route }) {
           completedAt: new Date().toISOString()
         }));
 
-        console.log("✅ Profile updated successfully:", {
-          userId: user.uid,
-          displayName: displayName,
-          isEditMode
-        });
+        console.log("Account updated successfully:", { uid: user.uid, isEditMode });
 
         // Navigate to Home
         Alert.alert(

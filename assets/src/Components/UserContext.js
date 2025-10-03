@@ -38,12 +38,7 @@ export const UserProvider = ({ children }) => {
         unsubscribeUser = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             const data = doc.data();
-            
-            console.log("👤 User logged in:", {
-              uid: currentUser.uid,
-              displayName: data.displayName || currentUser.displayName,
-              email: currentUser.email
-            });
+            console.log('UserContext - Document updated, isVerifiedOfficial:', data.isVerifiedOfficial || data.profile?.isVerifiedOfficial);
             
             // Extract display name from data
             const displayName = data.displayName || 
@@ -62,12 +57,13 @@ export const UserProvider = ({ children }) => {
               lastName: data.profile?.lastName || '',
               phoneNumber: data.profile?.phoneNumber || data.phoneNumber || '',
               profileComplete: !!data.profile?.firstName && !!data.profile?.lastName,
-              // Official verification fields
-              isVerifiedOfficial: data.profile?.isVerifiedOfficial || false,
-              officialRole: data.profile?.officialRole || null,
-              barangayAssignment: data.profile?.barangayAssignment || null,
-              canBroadcast: data.profile?.canBroadcast || false,
-              verificationStatus: data.profile?.verificationStatus || 'none'
+              // Official verification fields - check both root level and profile level
+              isVerifiedOfficial: data.isVerifiedOfficial || data.profile?.isVerifiedOfficial || false,
+              officialRole: data.officialRole || data.profile?.officialRole || null,
+              barangayAssignment: data.barangayAssignment || data.profile?.barangayAssignment || null,
+              canBroadcast: data.canBroadcast || data.profile?.canBroadcast || false,
+              verificationStatus: data.verificationStatus || data.profile?.verificationStatus || 'none',
+              verificationData: data.verificationData || data.profile?.verificationData || null
             };
 
             setUserData(enrichedData);
@@ -113,7 +109,7 @@ export const UserProvider = ({ children }) => {
 
   // Method to trigger update notifications to other components
   const notifyDataUpdate = (updateType, data) => {
-    // Silent data update notification
+    // This could emit events or trigger other listeners if needed
   };
 
   const value = {

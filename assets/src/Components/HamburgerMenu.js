@@ -11,6 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+import { useUser } from "./UserContext";
 
 const HamburgerMenu = ({ 
   menuVisible, 
@@ -19,7 +20,8 @@ const HamburgerMenu = ({
   opacityAnim, 
   navigation 
 }) => {
-  const screenHeight = Dimensions.get('window').height;
+  const { isVerifiedOfficial, officialRole, verificationStatus } = useUser();
+  const screenHeight = Dimensions.get("window").height;
 
   const hideMenu = () => {
     Animated.parallel([
@@ -149,6 +151,64 @@ const HamburgerMenu = ({
               <Text style={styles.menuText}>Broadcast Settings</Text>
               <Ionicons name="chevron-forward" size={20} color="#fff" />
             </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            {/* Official Verification Section */}
+            {!isVerifiedOfficial && verificationStatus !== 'pending' && (
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  hideMenu();
+                  navigation.navigate("OfficialVerification");
+                }}
+              >
+                <Ionicons name="shield-checkmark-outline" size={24} color="#fff" />
+                <Text style={styles.menuText}>Apply for Official Verification</Text>
+                <Ionicons name="chevron-forward" size={20} color="#fff" />
+              </TouchableOpacity>
+            )}
+
+            {verificationStatus === 'pending' && (
+              <View style={styles.menuItem}>
+                <Ionicons name="time-outline" size={24} color="#FF9800" />
+                <Text style={[styles.menuText, { color: '#FF9800' }]}>Verification Pending</Text>
+                <Ionicons name="hourglass-outline" size={20} color="#FF9800" />
+              </View>
+            )}
+
+            {isVerifiedOfficial && (
+              <>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    hideMenu();
+                    navigation.navigate("EmergencyBroadcast");
+                  }}
+                >
+                  <Ionicons name="megaphone-outline" size={24} color="#4CAF50" />
+                  <Text style={[styles.menuText, { color: '#4CAF50' }]}>Emergency Broadcast</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#4CAF50" />
+                </TouchableOpacity>
+
+                {/* Admin Panel for Barangay Captain or Testing */}
+                {(['barangay_captain', 'emergency_coordinator'].includes(officialRole) || !isVerifiedOfficial) && (
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      hideMenu();
+                      navigation.navigate("AdminPanel");
+                    }}
+                  >
+                    <Ionicons name="people-outline" size={24} color="#0891b2" />
+                    <Text style={[styles.menuText, { color: '#0891b2' }]}>
+                      {!isVerifiedOfficial ? 'Verification Management (Testing)' : 'Verification Management'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={20} color="#0891b2" />
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
 
             <View style={styles.menuDivider} />
 

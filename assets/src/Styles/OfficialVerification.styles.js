@@ -306,4 +306,54 @@ export default StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
   },
+  
+  // Developer Section Styles
+  developerSection: {
+    backgroundColor: '#1a1a1a',
+    margin: 15,
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  developerSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#00ff00',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  devAdminButton: {
+    backgroundColor: '#ff6b35',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  devAdminButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  developerNote: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  debugInfo: {
+    backgroundColor: '#333',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+  },
+  debugText: {
+    color: '#00ff00',
+    fontSize: 12,
+    fontFamily: 'monospace',
+    marginBottom: 2,
+  },
 });
