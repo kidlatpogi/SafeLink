@@ -90,6 +90,11 @@ export default function User_Form({ navigation, route }) {
     barangay: ''
   });
 
+  // Debug: Track administrative location changes
+  useEffect(() => {
+    console.log('Administrative location state updated:', administrativeLocation);
+  }, [administrativeLocation]);
+
   // Check if this is edit mode (coming from hamburger menu) or first-time setup
   useEffect(() => {
     const checkExistingProfile = async () => {
@@ -112,7 +117,10 @@ export default function User_Form({ navigation, route }) {
             
             // Handle administrative location
             if (profile.administrativeLocation) {
+              console.log('Loading administrative location from database:', profile.administrativeLocation);
               setAdministrativeLocation(profile.administrativeLocation);
+            } else {
+              console.log('No administrative location found in database');
             }
             
             // Handle broadcast settings
