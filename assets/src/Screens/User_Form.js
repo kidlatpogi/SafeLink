@@ -118,6 +118,16 @@ export default function User_Form({ navigation, route }) {
             // Handle administrative location
             if (profile.administrativeLocation) {
               console.log('Loading administrative location from database:', profile.administrativeLocation);
+              console.log('Administrative location structure check:', {
+                region: profile.administrativeLocation.region,
+                province: profile.administrativeLocation.province,
+                municipality: profile.administrativeLocation.municipality,
+                barangay: profile.administrativeLocation.barangay,
+                hasRegion: !!profile.administrativeLocation.region,
+                hasProvince: !!profile.administrativeLocation.province,
+                hasMunicipality: !!profile.administrativeLocation.municipality,
+                hasBarangay: !!profile.administrativeLocation.barangay
+              });
               setAdministrativeLocation(profile.administrativeLocation);
             } else {
               console.log('No administrative location found in database');
@@ -391,6 +401,17 @@ export default function User_Form({ navigation, route }) {
               initialCity={administrativeLocation.municipality}
               initialBarangay={administrativeLocation.barangay}
             />
+
+            {/* Debug: Show what props are being passed */}
+            {__DEV__ && (
+              <View style={{ padding: 10, backgroundColor: '#f0f0f0', margin: 10 }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold' }}>Debug - Props to PhilippineAddressSelector:</Text>
+                <Text style={{ fontSize: 10 }}>Region: "{administrativeLocation.region}"</Text>
+                <Text style={{ fontSize: 10 }}>Province: "{administrativeLocation.province}"</Text>
+                <Text style={{ fontSize: 10 }}>Municipality: "{administrativeLocation.municipality}"</Text>
+                <Text style={{ fontSize: 10 }}>Barangay: "{administrativeLocation.barangay}"</Text>
+              </View>
+            )}
 
             <InfoBox />
 
