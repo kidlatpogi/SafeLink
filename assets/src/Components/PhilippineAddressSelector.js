@@ -34,6 +34,22 @@ const PhilippineAddressSelector = ({
   const [selectedCity, setSelectedCity] = useState(initialCity);
   const [selectedBarangay, setSelectedBarangay] = useState(initialBarangay);
   
+  // Update state when initial values change (for edit mode)
+  useEffect(() => {
+    if (initialRegion !== selectedRegion) {
+      setSelectedRegion(initialRegion);
+    }
+    if (initialProvince !== selectedProvince) {
+      setSelectedProvince(initialProvince);
+    }
+    if (initialCity !== selectedCity) {
+      setSelectedCity(initialCity);
+    }
+    if (initialBarangay !== selectedBarangay) {
+      setSelectedBarangay(initialBarangay);
+    }
+  }, [initialRegion, initialProvince, initialCity, initialBarangay]);
+  
   const [regionModalVisible, setRegionModalVisible] = useState(false);
   const [provinceModalVisible, setProvinceModalVisible] = useState(false);
   const [cityModalVisible, setCityModalVisible] = useState(false);
@@ -46,6 +62,7 @@ const PhilippineAddressSelector = ({
   
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   
   // Data states
   const [regionList, setRegionList] = useState([]);
@@ -57,6 +74,52 @@ const PhilippineAddressSelector = ({
   useEffect(() => {
     loadRegions();
   }, []);
+
+  // Load cascading data when initial values are provided
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (initialRegion && regionList.length > 0 && !initialDataLoaded) {
+        try {
+          setInitialDataLoaded(true);
+          
+          // Find region code for the initial region
+          const regionInfo = regionList.find(r => r.region_name === initialRegion);
+          if (regionInfo) {
+            // Load provinces for the initial region
+            await loadProvinces(regionInfo.region_code);
+            
+            if (initialProvince) {
+              // Find province info to get province code
+              const provinceInfo = await provinceByName(initialProvince);
+              if (provinceInfo) {
+                // Load cities for the initial province
+                await loadCities(provinceInfo.province_code);
+                
+                if (initialCity) {
+                  // Get cities data to find city code
+                  const cityData = await cities(provinceInfo.province_code);
+                  const cityInfo = cityData.find(c => c.city_name === initialCity);
+                  if (cityInfo && initialBarangay) {
+                    // Load barangays for the initial city
+                    await loadBarangays(cityInfo.city_code);
+                  }
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading initial address data:', error);
+          setInitialDataLoaded(false); // Reset on error to allow retry
+        }
+      }
+    };
+
+    // Only load initial data if we have initial values and regions are loaded
+    // Also check if we haven't already set the region to avoid infinite loops
+    if (initialRegion && regionList.length > 0 && selectedRegion === initialRegion) {
+      loadInitialData();
+    }
+  }, [regionList, initialRegion, initialProvince, initialCity, initialBarangay]);
 
   // Auto-fill based on coordinates when provided
   useEffect(() => {

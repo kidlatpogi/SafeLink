@@ -5,6 +5,9 @@ export default StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8f9fa",
   },
+  scrollContainer: {
+    flex: 1,
+  },
   header: {
     backgroundColor: "#FF6F00",
     paddingBottom: 20,
@@ -303,5 +306,218 @@ export default StyleSheet.create({
     color: '#5D4037',
     lineHeight: 18,
     marginBottom: 4,
+  },
+  
+  // Photo Section Styles
+  photoSection: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E3F2FD',
+  },
+  
+  photoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  
+  photoHeaderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 8,
+  },
+  
+  photoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  
+  photoThumbnail: {
+    position: 'relative',
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F5F5F5',
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+  },
+  
+  photoImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  
+  photoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  photoActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  
+  changePhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 8,
+    gap: 4,
+  },
+  
+  changePhotoText: {
+    fontSize: 14,
+    color: '#2196F3',
+    fontWeight: '500',
+  },
+  
+  removePhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    gap: 4,
+  },
+  
+  removePhotoText: {
+    fontSize: 14,
+    color: '#F44336',
+    fontWeight: '500',
+  },
+  
+  addPhotoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E3F2FD',
+    borderStyle: 'dashed',
+    marginBottom: 8,
+  },
+  
+  addPhotoIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  
+  addPhotoContent: {
+    flex: 1,
+  },
+  
+  addPhotoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  
+  addPhotoSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  
+  privacyText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  
+  // Photo Modal Styles
+  photoModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  
+  photoModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+  
+  photoModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  
+  photoModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  
+  photoModalClose: {
+    padding: 4,
+  },
+  
+  photoModalImage: {
+    width: '100%',
+    height: 250,
+    borderRadius: 12,
+    resizeMode: 'cover',
+    marginBottom: 20,
+  },
+  
+  photoModalActions: {
+    gap: 12,
+  },
+  
+  photoModalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    gap: 8,
+  },
+  
+  photoModalRemoveButton: {
+    backgroundColor: '#FFEBEE',
+  },
+  
+  photoModalButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#2196F3',
+  },
+  
+  photoModalRemoveText: {
+    color: '#F44336',
   },
 });
