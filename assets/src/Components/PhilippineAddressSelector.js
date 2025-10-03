@@ -34,38 +34,18 @@ const PhilippineAddressSelector = ({
   const [selectedCity, setSelectedCity] = useState(initialCity);
   const [selectedBarangay, setSelectedBarangay] = useState(initialBarangay);
   
-  // Debug: Log initial values and state
-  useEffect(() => {
-    console.log('PhilippineAddressSelector - Initial props:', { 
-      initialRegion, 
-      initialProvince, 
-      initialCity, 
-      initialBarangay 
-    });
-    console.log('PhilippineAddressSelector - Current state:', { 
-      selectedRegion, 
-      selectedProvince, 
-      selectedCity, 
-      selectedBarangay 
-    });
-  }, [initialRegion, initialProvince, initialCity, initialBarangay]);
-
   // Update state when initial values change (for edit mode)
   useEffect(() => {
     if (initialRegion !== selectedRegion) {
-      console.log('Updating selectedRegion from', selectedRegion, 'to', initialRegion);
       setSelectedRegion(initialRegion);
     }
     if (initialProvince !== selectedProvince) {
-      console.log('Updating selectedProvince from', selectedProvince, 'to', initialProvince);
       setSelectedProvince(initialProvince);
     }
     if (initialCity !== selectedCity) {
-      console.log('Updating selectedCity from', selectedCity, 'to', initialCity);
       setSelectedCity(initialCity);
     }
     if (initialBarangay !== selectedBarangay) {
-      console.log('Updating selectedBarangay from', selectedBarangay, 'to', initialBarangay);
       setSelectedBarangay(initialBarangay);
     }
   }, [initialRegion, initialProvince, initialCity, initialBarangay]);
@@ -101,7 +81,6 @@ const PhilippineAddressSelector = ({
       if (initialRegion && regionList.length > 0 && !initialDataLoaded) {
         try {
           setInitialDataLoaded(true);
-          console.log('Loading initial address data:', { initialRegion, initialProvince, initialCity, initialBarangay });
           
           // Find region code for the initial region
           const regionInfo = regionList.find(r => r.region_name === initialRegion);
@@ -128,7 +107,6 @@ const PhilippineAddressSelector = ({
               }
             }
           }
-          console.log('Initial address data loaded successfully');
         } catch (error) {
           console.error('Error loading initial address data:', error);
           setInitialDataLoaded(false); // Reset on error to allow retry
@@ -307,26 +285,21 @@ const PhilippineAddressSelector = ({
     );
   };
 
-  const renderDropdownButton = (title, value, onPress, disabled = false) => {
-    // Debug: Log dropdown values
-    console.log(`Dropdown ${title}: value="${value}", disabled=${disabled}`);
-    
-    return (
-      <View style={styles.fieldContainer}>
-        <Text style={styles.fieldLabel}>{title}</Text>
-        <TouchableOpacity
-          style={[styles.dropdownButton, disabled && styles.disabledButton]}
-          onPress={onPress}
-          disabled={disabled || isLoading}
-        >
-          <Text style={[styles.dropdownButtonText, !value && styles.placeholderText]}>
-            {value || `Select ${title}`}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#666" />
-        </TouchableOpacity>
-      </View>
-    );
-  };
+  const renderDropdownButton = (title, value, onPress, disabled = false) => (
+    <View style={styles.fieldContainer}>
+      <Text style={styles.fieldLabel}>{title}</Text>
+      <TouchableOpacity
+        style={[styles.dropdownButton, disabled && styles.disabledButton]}
+        onPress={onPress}
+        disabled={disabled || isLoading}
+      >
+        <Text style={[styles.dropdownButtonText, !value && styles.placeholderText]}>
+          {value || `Select ${title}`}
+        </Text>
+        <Ionicons name="chevron-down" size={20} color="#666" />
+      </TouchableOpacity>
+    </View>
+  );
 
   const renderModal = (visible, setVisible, data, searchValue, setSearchValue, onSelect, titleKey, searchPlaceholder, title) => (
     <Modal
