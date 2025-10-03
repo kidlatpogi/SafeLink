@@ -116,7 +116,7 @@ export default function AddFamily({ navigation }) {
         setLocalFamily([]);
       }
     } catch (err) {
-      console.log("Failed to refresh family data:", err);
+      // Failed to refresh family data silently
     }
   };
 
@@ -162,7 +162,7 @@ export default function AddFamily({ navigation }) {
           setLocalFamily(userFamily.members || []);
         }
       } catch (err) {
-        console.log("Failed to fetch family data:", err);
+        // Failed to fetch family data silently
       }
     };
     
@@ -545,10 +545,12 @@ export default function AddFamily({ navigation }) {
                 <Ionicons name="people" size={20} color="#4CAF50" />
                 <Text style={styles.codeSectionTitle}>Your Family Code</Text>
               </View>
-              {isLocalAdmin && (
+              {(myFamilyCode && isLocalAdmin) && (
                 <TouchableOpacity 
                   style={styles.settingsButton}
-                  onPress={() => setManagementModalVisible(true)}
+                  onPress={() => {
+                    setManagementModalVisible(true);
+                  }}
                 >
                   <Ionicons name="settings" size={20} color="#666" />
                   {getMembersWithRemovalRequests && getMembersWithRemovalRequests().length > 0 && (

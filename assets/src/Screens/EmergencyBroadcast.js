@@ -148,7 +148,6 @@ export default function EmergencyBroadcast({ navigation }) {
         setBarangay(place.district || place.subregion || place.name || "Unknown Barangay");
       }
     } catch (err) {
-      console.log("Reverse geocode failed:", err);
       setLocation("Unknown City");
       setBarangay("Unknown Barangay");
     } finally {
@@ -232,6 +231,13 @@ export default function EmergencyBroadcast({ navigation }) {
       }
 
       const docRef = await addDoc(collection(db, "broadcasts"), broadcastData);
+
+      console.log("🚨 Emergency broadcast posted successfully:", {
+        broadcastId: docRef.id,
+        alertType: selectedAlert.value,
+        role: officialRole,
+        location: `${barangay}, ${location}`
+      });
 
       Alert.alert(
         "✅ Official Broadcast Sent", 

@@ -38,7 +38,12 @@ export const UserProvider = ({ children }) => {
         unsubscribeUser = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             const data = doc.data();
-            console.log('UserContext - User data updated:', data);
+            
+            console.log("👤 User logged in:", {
+              uid: currentUser.uid,
+              displayName: data.displayName || currentUser.displayName,
+              email: currentUser.email
+            });
             
             // Extract display name from data
             const displayName = data.displayName || 
@@ -56,7 +61,13 @@ export const UserProvider = ({ children }) => {
               firstName: data.profile?.firstName || '',
               lastName: data.profile?.lastName || '',
               phoneNumber: data.profile?.phoneNumber || data.phoneNumber || '',
-              profileComplete: !!data.profile?.firstName && !!data.profile?.lastName
+              profileComplete: !!data.profile?.firstName && !!data.profile?.lastName,
+              // Official verification fields
+              isVerifiedOfficial: data.profile?.isVerifiedOfficial || false,
+              officialRole: data.profile?.officialRole || null,
+              barangayAssignment: data.profile?.barangayAssignment || null,
+              canBroadcast: data.profile?.canBroadcast || false,
+              verificationStatus: data.profile?.verificationStatus || 'none'
             };
 
             setUserData(enrichedData);
@@ -64,7 +75,6 @@ export const UserProvider = ({ children }) => {
             // Cache user data for offline access
             AsyncStorage.setItem('cachedUserData', JSON.stringify(enrichedData));
           } else {
-            console.log('UserContext - No user document found');
             setUserData(null);
           }
           setLoading(false);
@@ -103,8 +113,7 @@ export const UserProvider = ({ children }) => {
 
   // Method to trigger update notifications to other components
   const notifyDataUpdate = (updateType, data) => {
-    console.log(`UserContext - Data update notification: ${updateType}`, data);
-    // This could emit events or trigger other listeners if needed
+    // Silent data update notification
   };
 
   const value = {
@@ -117,6 +126,12 @@ export const UserProvider = ({ children }) => {
     email: userData?.email || '',
     phoneNumber: userData?.phoneNumber || '',
     profileComplete: userData?.profileComplete || false,
+    // Official verification properties
+    isVerifiedOfficial: userData?.isVerifiedOfficial || false,
+    officialRole: userData?.officialRole || null,
+    barangayAssignment: userData?.barangayAssignment || null,
+    canBroadcast: userData?.canBroadcast || false,
+    verificationStatus: userData?.verificationStatus || 'none',
     notifyDataUpdate
   };
 

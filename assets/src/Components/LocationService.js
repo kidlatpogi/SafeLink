@@ -23,7 +23,11 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     if (location) {
       try {
         await updateUserLocationInFirestore(location.coords);
-        console.log('Background location updated:', location.coords);
+        console.log('📍 Location updated:', {
+          latitude: location.coords.latitude.toFixed(6),
+          longitude: location.coords.longitude.toFixed(6),
+          accuracy: location.coords.accuracy
+        });
       } catch (updateError) {
         console.error('Failed to update location in Firestore:', updateError);
       }
@@ -68,8 +72,6 @@ class LocationService {
   // Request comprehensive location permissions
   static async requestLocationPermissions() {
     try {
-      console.log('🔐 Requesting location permissions...');
-      
       // Check if location services are enabled first
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       if (!servicesEnabled) {
@@ -78,9 +80,7 @@ class LocationService {
       }
 
       // Request foreground permissions first
-      console.log('📱 Requesting foreground location permission...');
       const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
-      console.log('📱 Foreground permission status:', foregroundStatus);
       
       if (foregroundStatus !== 'granted') {
         console.error('❌ Foreground location permission denied');
@@ -93,9 +93,7 @@ class LocationService {
       }
 
       // Request background permissions for emergency tracking
-      console.log('🌙 Requesting background location permission...');
       const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
-      console.log('🌙 Background permission status:', backgroundStatus);
       
       const result = {
         foreground: foregroundStatus === 'granted',
@@ -103,7 +101,6 @@ class LocationService {
         servicesEnabled: true
       };
 
-      console.log('✅ Location permissions result:', result);
       return result;
     } catch (error) {
       console.error('❌ Permission request error:', error);
