@@ -21,7 +21,6 @@ import TermsPrivacy from "./assets/src/Screens/TermsPrivacy";
 import User_Form from "./assets/src/Screens/User_Form";
 import LocationSettings from "./assets/src/Screens/LocationSettings";
 import BroadcastSettingsScreen from "./assets/src/Screens/BroadcastSettingsScreen";
-import LocationTest from "./assets/src/Screens/LocationTest";
 import EmergencyBroadcast from "./assets/src/Screens/EmergencyBroadcast";
 import BroadcastFeed from "./assets/src/Screens/BroadcastFeed";
 import EvacuationCenters from "./assets/src/Screens/EvacuationCenters";
@@ -32,6 +31,7 @@ import Go_Bag from "./assets/src/Screens/Go_Bag";
 import OfficialVerification from "./assets/src/Screens/OfficialVerification";
 import AdminPanel from "./assets/src/Screens/AdminPanel";
 import BroadcastAnalytics from "./assets/src/Screens/BroadcastAnalytics";
+import RealTimeAlerts from "./assets/src/Screens/RealTimeAlerts";
 
 const Stack = createStackNavigator();
 
@@ -140,7 +140,6 @@ export default function App() {
             <Stack.Screen name="User_Form" component={User_Form} />
             <Stack.Screen name="LocationSettings" component={LocationSettings} />
             <Stack.Screen name="BroadcastSettings" component={BroadcastSettingsScreen} />
-            <Stack.Screen name="LocationTest" component={LocationTest} />
             <Stack.Screen name="EmergencyBroadcast" component={EmergencyBroadcast} />
             <Stack.Screen name="BroadcastFeed" component={BroadcastFeed} />
             <Stack.Screen name="EvacuationCenters" component={EvacuationCenters} />
@@ -151,6 +150,7 @@ export default function App() {
             <Stack.Screen name="OfficialVerification" component={OfficialVerification} />
             <Stack.Screen name="AdminPanel" component={AdminPanel} />
             <Stack.Screen name="BroadcastAnalytics" component={BroadcastAnalytics} />
+            <Stack.Screen name="RealTimeAlerts" component={RealTimeAlerts} />
           </Stack.Navigator>
         </NavigationContainer>
       </FamilyProvider>

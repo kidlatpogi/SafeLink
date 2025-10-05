@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LocationService from '../Components/LocationService';
-import HamburgerMenu from '../Components/HamburgerMenu';
+import AppHeader from '../Components/AppHeader';
 import styles from '../Styles/Create_Account.styles'; // Reusing existing styles
 
 export default function LocationSettings({ navigation }) {
@@ -24,31 +24,10 @@ export default function LocationSettings({ navigation }) {
   const [hasForegroundPermission, setHasForegroundPermission] = useState(false);
   const [lastLocationUpdate, setLastLocationUpdate] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
-  
-  // Animation values for hamburger menu
-  const slideAnim = useRef(new Animated.Value(-280)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadLocationSettings();
   }, []);
-
-  const showMenu = () => {
-    setIsMenuVisible(true);
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   const loadLocationSettings = async () => {
     try {
@@ -219,57 +198,7 @@ export default function LocationSettings({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      {/* Header */}
-      <View style={{
-        backgroundColor: '#FF6F00',
-        paddingTop: Platform.OS === 'ios' ? 50 : 50,
-        paddingBottom: 16,
-        paddingHorizontal: 16,
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-      }}>
-        <View style={{ 
-          flexDirection: 'row', 
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            style={{
-              width: 40,
-              height: 40,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons name="arrow-back" size={32} color="#fff" />
-          </TouchableOpacity>
-          <Text style={{
-            color: '#fff',
-            fontSize: 20,
-            fontWeight: 'bold',
-            flex: 1,
-            textAlign: 'center',
-            fontFamily: 'Montserrat-Regular'
-          }}>
-            Location Settings
-          </Text>
-          <TouchableOpacity 
-            onPress={showMenu}
-            style={{
-              width: 40,
-              height: 40,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons name="menu" size={32} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AppHeader title="Location Settings" backgroundColor="#FF6F00" navigation={navigation} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -461,39 +390,6 @@ export default function LocationSettings({ navigation }) {
             </View>
           </TouchableOpacity>
 
-          {/* Location Test Button */}
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#6c757d',
-              borderRadius: 15,
-              padding: 18,
-              marginBottom: 20,
-              shadowColor: '#6c757d',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 5
-            }}
-            onPress={() => navigation.navigate('LocationTest')}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons 
-                name="bug" 
-                size={18} 
-                color="#fff" 
-                style={{ marginRight: 10 }} 
-              />
-              <Text style={{
-                color: '#fff',
-                fontSize: 16,
-                fontWeight: '600',
-                fontFamily: 'Montserrat-Regular'
-              }}>
-                Run Location Tests
-              </Text>
-            </View>
-          </TouchableOpacity>
-
           {/* Last Update Info */}
           {lastLocationUpdate && (
             <View style={{
@@ -571,14 +467,6 @@ export default function LocationSettings({ navigation }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      
-      <HamburgerMenu 
-        menuVisible={isMenuVisible}
-        setMenuVisible={setIsMenuVisible}
-        slideAnim={slideAnim}
-        opacityAnim={opacityAnim}
-        navigation={navigation}
-      />
     </View>
   );
 }

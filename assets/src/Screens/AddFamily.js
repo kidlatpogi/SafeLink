@@ -111,12 +111,18 @@ export default function AddFamily({ navigation }) {
       if (userFamily) {
         setLocalFamilyCode(userFamily.code);
         setLocalFamily(userFamily.members || []);
+        console.log("Family data refreshed:", { familyCode: userFamily.code, memberCount: userFamily.members?.length || 0 });
       } else {
+        // Explicitly clear state if no family found
         setLocalFamilyCode("");
         setLocalFamily([]);
+        console.log("No active family found - state cleared");
       }
     } catch (err) {
-      // Silent fail for family data refresh
+      console.error("Error refreshing family data:", err);
+      // On error, clear state to be safe
+      setLocalFamilyCode("");
+      setLocalFamily([]);
     }
   };
 
@@ -128,6 +134,12 @@ export default function AddFamily({ navigation }) {
     }
   }, [contextFamilyCode, contextFamily]);
 
+  // Force re-render when family data changes
+  useEffect(() => {
+    // This ensures the component re-renders when family state changes
+    console.log("Family state changed:", { localFamilyCode, familyMemberCount: localFamily.length });
+  }, [localFamilyCode, localFamily]);
+
   // Fetch current family and check if user has existing family code
   // Note: This supports both new structure (family code as doc ID) and legacy structure (random doc IDs)
   useEffect(() => {
@@ -135,6 +147,7 @@ export default function AddFamily({ navigation }) {
     
     const fetchFamilyData = async () => {
       try {
+        console.log("Fetching family data for user:", userId);
         // Check if user is part of any family by searching through all families
         // This approach works for both new and legacy family documents
         const familiesRef = collection(db, "families");
@@ -158,11 +171,18 @@ export default function AddFamily({ navigation }) {
         });
         
         if (userFamily) {
+          console.log("Found user family:", { familyCode: userFamily.code, memberCount: userFamily.members?.length || 0 });
           setLocalFamilyCode(userFamily.code);
           setLocalFamily(userFamily.members || []);
+        } else {
+          console.log("No family found for user");
+          setLocalFamilyCode("");
+          setLocalFamily([]);
         }
       } catch (err) {
-        // Silent fail for family data fetch
+        console.error("Error fetching family data:", err);
+        setLocalFamilyCode("");
+        setLocalFamily([]);
       }
     };
     
@@ -352,44 +372,52 @@ export default function AddFamily({ navigation }) {
     }
   };
 
-  // Archive family (only family creator can do this)
+  // Delete family (archives it in database but appears as deletion to user)
   const archiveFamily = async () => {
     if (!myFamilyCode || !isLocalAdmin) {
-      Alert.alert("Error", "Only the family creator can archive the family.");
+      Alert.alert("Error", "Only the family creator can delete the family.");
       return;
     }
 
     if (confirmationText !== "CONFIRM DELETE") {
-      Alert.alert("Error", "Please type 'CONFIRM DELETE' to proceed with archiving the family.");
+      Alert.alert("Error", "Please type 'CONFIRM DELETE' to proceed with deleting the family.");
       return;
     }
 
     setLoading(true);
     try {
+      // Close modals first
+      setConfirmationModalVisible(false);
+      setManagementModalVisible(false);
+      setConfirmationText("");
+      setActionType("");
+      
+      // Immediately reset local state to show real-time deletion
+      setLocalFamilyCode("");
+      setLocalFamily([]);
+      
+      // Archive the family in the database
       await updateDoc(doc(db, "families", myFamilyCode), {
         isArchived: true,
         archivedAt: new Date().toISOString(),
         archivedBy: userId
       });
-
-      // Reset state and refresh
-      setManagementModalVisible(false);
-      setConfirmationModalVisible(false);
-      setConfirmationText("");
-      setActionType("");
-      setLocalFamilyCode("");
-      setLocalFamily([]);
+      
+      // Force a refresh to ensure consistency
       await refreshFamilyData();
       
-      Alert.alert("Family Archived", "The family has been archived successfully. You can now create or join a new family.");
+      Alert.alert("Family Deleted", "The family has been deleted successfully. You can now create or join a new family.");
     } catch (error) {
-      console.error("Error archiving family:", error);
-      Alert.alert("Error", "Failed to archive family. Please try again.");
+      console.error("Error deleting family:", error);
+      Alert.alert("Error", "Failed to delete family. Please try again.");
+      
+      // If there's an error, try to restore the previous state
+      await refreshFamilyData();
     }
     setLoading(false);
   };
 
-  // Kick family member (only admin can do this)
+  // Remove family member (only admin can do this)
   const kickMember = async (memberToKick) => {
     if (!isLocalAdmin) {
       Alert.alert("Error", "Only family admin can remove members.");
@@ -397,7 +425,7 @@ export default function AddFamily({ navigation }) {
     }
 
     if (memberToKick.userId === userId) {
-      Alert.alert("Error", "You cannot remove yourself. Use archive family instead.");
+      Alert.alert("Error", "You cannot remove yourself. Use delete family instead.");
       return;
     }
 
@@ -410,15 +438,20 @@ export default function AddFamily({ navigation }) {
     try {
       const updatedMembers = displayFamily.filter(member => member.userId !== memberToKick.userId);
       
+      // Update database
       await updateDoc(doc(db, "families", myFamilyCode), { members: updatedMembers });
 
-      // Reset state and refresh
+      // Immediately update local state for real-time UI update
+      setLocalFamily(updatedMembers);
+      
+      // Close modals
       setConfirmationModalVisible(false);
       setManagementModalVisible(false);
       setMemberToRemove(null);
       setConfirmationText("");
       setActionType("");
-      setLocalFamily(updatedMembers);
+      
+      // Refresh family data to ensure consistency
       await refreshFamilyData();
       
       Alert.alert("Member Removed", `${memberToKick.name} has been removed from the family.`);
@@ -447,7 +480,7 @@ export default function AddFamily({ navigation }) {
   // Handle removal requests (request or cancel)
   const handleRemovalRequest = async (isCancel = false) => {
     if (isLocalAdmin) {
-      Alert.alert("Info", "As the family admin, you can archive the entire family instead.");
+      Alert.alert("Info", "As the family admin, you can delete the entire family instead.");
       return;
     }
 
@@ -474,8 +507,13 @@ export default function AddFamily({ navigation }) {
               return member;
             });
             
+            // Update database
             await updateDoc(doc(db, "families", myFamilyCode), { members: updatedMembers });
+            
+            // Immediately update local state for real-time UI update
             setLocalFamily(updatedMembers);
+            
+            // Refresh family data to ensure consistency
             await refreshFamilyData();
             
             Alert.alert(
@@ -775,9 +813,9 @@ export default function AddFamily({ navigation }) {
               
               {/* Archive Family Section */}
               <View style={styles.archiveSection}>
-                <Text style={styles.archiveSectionTitle}>🗄️ Archive Family</Text>
+                <Text style={styles.archiveSectionTitle}>Delete Family</Text>
                 <Text style={styles.archiveSectionDescription}>
-                  Archiving will make the family code unusable and remove all members' access. This action cannot be undone.
+                  Deleting will make the family code unusable and remove all members' access. This action cannot be undone.
                 </Text>
                 <TouchableOpacity 
                   style={[styles.archiveButton, loading && styles.disabledButton]}
@@ -785,7 +823,7 @@ export default function AddFamily({ navigation }) {
                   disabled={loading}
                 >
                   <Ionicons name="archive" size={20} color="white" />
-                  <Text style={styles.archiveButtonText}>Archive Family</Text>
+                  <Text style={styles.archiveButtonText}>Delete Family</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -809,7 +847,7 @@ export default function AddFamily({ navigation }) {
           <View style={styles.confirmationModalContent}>
             <View style={styles.confirmationModalHeader}>
               <Text style={styles.confirmationModalTitle}>
-                {actionType === "archive" ? "🔒 Archive Family" : `🔒 Remove ${memberToRemove?.name}`}
+                {actionType === "archive" ? "🔒 Delete Family" : `🔒 Remove ${memberToRemove?.name}`}
               </Text>
               <TouchableOpacity 
                 style={styles.modalCloseButton}
@@ -827,7 +865,7 @@ export default function AddFamily({ navigation }) {
             <View style={styles.confirmationModalBody}>
               <Text style={styles.confirmationModalDescription}>
                 {actionType === "archive" 
-                  ? "This will permanently archive your family and make the family code unusable. All members will lose access."
+                  ? "This will permanently delete your family and make the family code unusable. All members will lose access."
                   : `This will remove ${memberToRemove?.name} from your family. They will lose access to family features.`
                 }
               </Text>
@@ -870,7 +908,7 @@ export default function AddFamily({ navigation }) {
                   }
                 >
                   <Text style={styles.proceedButtonText}>
-                    {loading ? "Processing..." : (actionType === "archive" ? "Archive" : "Remove")}
+                    {loading ? "Processing..." : (actionType === "archive" ? "Delete" : "Remove")}
                   </Text>
                 </TouchableOpacity>
               </View>
