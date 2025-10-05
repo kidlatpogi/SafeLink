@@ -62,7 +62,6 @@ import NameInputs from '../Components/NameInputs';
 import PhoneInput from '../Components/PhoneInput';
 import PhilippineAddressSelector from '../Components/PhilippineAddressSelector';
 import HamburgerMenu from '../Components/HamburgerMenu';
-// import LocationSettings from '../Components/LocationSettings'; // Temporarily disabled
 import BirthdatePicker from '../Components/BirthdatePicker';
 import InfoBox from '../Components/InfoBox';
 import UserFormActions from '../Components/UserFormActions';
