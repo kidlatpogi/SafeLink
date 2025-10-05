@@ -7,6 +7,8 @@ import {
   StatusBar,
   StyleSheet,
   Animated,
+  Platform,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import HamburgerMenu from './HamburgerMenu';
@@ -20,6 +22,10 @@ const AppHeader = ({
   backgroundColor = '#FF6F00',
   statusBarStyle = 'light-content'
 }) => {
+  // Calculate consistent header height for different devices
+  const statusBarHeight = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
+  const headerPadding = statusBarHeight + 15;
+  
   // Hamburger menu state
   const slideAnim = useRef(new Animated.Value(-280)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -46,7 +52,7 @@ const AppHeader = ({
       <StatusBar backgroundColor={backgroundColor} barStyle={statusBarStyle} />
       
       {/* Main Header */}
-      <View style={[styles.header, { backgroundColor }]}>
+      <View style={[styles.header, { backgroundColor, paddingTop: headerPadding }]}>
         <View style={styles.headerContent}>
           {/* Back Button */}
           {showBackButton ? (
@@ -86,7 +92,7 @@ const AppHeader = ({
       {/* Title Row with Icon */}
       {title && (
         <View style={styles.titleRow}>
-          {icon && <Ionicons name={icon} size={24} color="#FF6F00" />}
+          {icon && <Ionicons name={icon} size={26} color="#FF6F00" />}
           <Text style={styles.title}>{title}</Text>
         </View>
       )}
@@ -108,7 +114,6 @@ const AppHeader = ({
 const styles = StyleSheet.create({
   header: {
     paddingBottom: 20,
-    paddingTop: 10,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -120,13 +125,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 55,
+    paddingVertical: 10,
+    minHeight: 60, // Ensure consistent minimum height
   },
   headerButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 22,
   },
   logoWrapper: {
     flexDirection: "row",
@@ -135,28 +142,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logoImage: {
-    width: 32,
-    height: 32,
-    marginRight: 8,
+    width: 35,
+    height: 35,
+    marginRight: 10,
   },
   logo: {
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 18,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+    minHeight: 56,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
     marginLeft: 12,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
 });
 
