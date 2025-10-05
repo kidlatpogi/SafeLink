@@ -460,25 +460,12 @@ export default function BroadcastFeed({ navigation }) {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar backgroundColor="#FF6F00" barStyle="light-content" />
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={32} color="white" />
-          </TouchableOpacity>
-          <View style={styles.logoWrapper}>
-            <Image source={Logo} style={styles.logo} />
-            <Text style={styles.headerTitle}>SafeLink</Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.hamburgerButton}
-            onPress={showMenu}
-          >
-            <Ionicons name="menu" size={32} color="white" />
-          </TouchableOpacity>
-        </View>
+        {/* App Header */}
+        <AppHeader 
+          title="Broadcast Feed"
+          icon="notifications"
+          navigation={navigation}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6F00" />
           <Text style={styles.loadingText}>Loading emergency broadcasts...</Text>

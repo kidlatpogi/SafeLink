@@ -7,13 +7,11 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  StatusBar,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Modal,
-  Image,
-  Animated,
+  Image
 } from "react-native";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { db, auth } from "../firebaseConfig";
