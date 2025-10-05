@@ -21,7 +21,7 @@ import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion } from 
 import * as Location from "expo-location";
 import useLocation from "../Components/useLocation";
 import { useUser } from "../Components/UserContext";
-import HamburgerMenu from "../Components/HamburgerMenu";
+import AppHeader from "../Components/AppHeader";
 import styles from "../Styles/EmergencyBroadcast.styles";
 
 export default function EmergencyBroadcast({ navigation }) {
@@ -56,11 +56,6 @@ export default function EmergencyBroadcast({ navigation }) {
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [userAdminLocation, setUserAdminLocation] = useState(null);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
-
-  // Hamburger menu state
-  const [menuVisible, setMenuVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-280)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // Alert type options with enhanced design
   const alertTypes = [
@@ -262,59 +257,16 @@ export default function EmergencyBroadcast({ navigation }) {
     return alertTypes.find(type => type.label === alertType) || alertTypes[0];
   };
 
-  // Hamburger menu functions
-  const showMenu = () => {
-    setMenuVisible(true);
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
   const currentAlert = getCurrentAlertType();
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FF6F00" barStyle="light-content" />
-      
-      {/* Enhanced Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={32} color="white" />
-          </TouchableOpacity>
-          <View style={styles.logoWrapper}>
-            <Image source={require('../Images/SafeLink_LOGO.png')} style={styles.logoImage} />
-            <Text style={styles.logo}>
-              <Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>Safe</Text>
-              <Text style={{ color: "#E82222", fontWeight: "bold", fontSize: 18 }}>Link</Text>
-            </Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.hamburgerButton}
-            onPress={showMenu}
-          >
-            <Ionicons name="menu" size={32} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Title */}
-      <View style={styles.titleRow}>
-        <Ionicons name="megaphone" size={24} color="#FF6F00" />
-        <Text style={styles.title}>Emergency Broadcast</Text>
-      </View>
+      {/* App Header */}
+      <AppHeader 
+        title="Emergency Broadcast"
+        icon="megaphone"
+        navigation={navigation}
+      />
 
       <KeyboardAvoidingView 
         style={{ flex: 1 }} 
@@ -527,15 +479,6 @@ export default function EmergencyBroadcast({ navigation }) {
           </View>
         </View>
       </Modal>
-
-      {/* Hamburger Menu */}
-      <HamburgerMenu
-        menuVisible={menuVisible}
-        setMenuVisible={setMenuVisible}
-        slideAnim={slideAnim}
-        opacityAnim={opacityAnim}
-        navigation={navigation}
-      />
     </SafeAreaView>
   );
 }
