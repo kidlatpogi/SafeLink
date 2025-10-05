@@ -9,15 +9,13 @@ import {
   Modal,
   Image,
   ActivityIndicator,
-  SafeAreaView,
   Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '../firebaseConfig';
 import { doc, updateDoc, addDoc, collection, serverTimestamp, getDocs, getDoc } from 'firebase/firestore';
 import { useUser } from '../Components/UserContext';
-import HamburgerMenu from '../Components/HamburgerMenu';
-import Logo from '../Images/SafeLink_LOGO.png';
+import AppHeader from '../Components/AppHeader';
 import styles from '../Styles/OfficialVerification.styles';
 
 const OFFICIAL_ROLES = [
@@ -41,11 +39,6 @@ export default function OfficialVerification({ navigation }) {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [verificationCodes, setVerificationCodes] = useState({});
   const [fetchingCodes, setFetchingCodes] = useState(true);
-  
-  // Hamburger menu state
-  const [menuVisible, setMenuVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-280)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // Fetch verification codes from Firebase
   useEffect(() => {
@@ -68,42 +61,10 @@ export default function OfficialVerification({ navigation }) {
           }
         });
         
-        // Add fallback test codes if no codes found in Firebase
-        if (Object.keys(codes).length === 0) {
-          codes['TEST_ADMIN_001'] = {
-            barangay: 'Test Barangay',
-            municipality: 'Test Municipality',
-            province: 'Test Province',
-            isActive: true
-          };
-          codes['DEMO_CODE_123'] = {
-            barangay: 'Demo Barangay',
-            municipality: 'Demo City',
-            province: 'Demo Province',
-            isActive: true
-          };
-        }
-        
         setVerificationCodes(codes);
       } catch (error) {
         console.error('Error fetching verification codes:', error);
-        
-        // Use fallback codes on error
-        const fallbackCodes = {
-          'TEST_ADMIN_001': {
-            barangay: 'Test Barangay',
-            municipality: 'Test Municipality',
-            province: 'Test Province',
-            isActive: true
-          },
-          'DEMO_CODE_123': {
-            barangay: 'Demo Barangay',
-            municipality: 'Demo City',
-            province: 'Demo Province',
-            isActive: true
-          }
-        };
-        setVerificationCodes(fallbackCodes);
+        setVerificationCodes({});
         
         Alert.alert(
           'Notice', 
@@ -118,182 +79,9 @@ export default function OfficialVerification({ navigation }) {
     fetchVerificationCodes();
   }, []);
 
-  const showMenu = () => {
-    setMenuVisible(true);
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
   const validateVerificationCode = (code) => {
     const upperCode = code.toUpperCase();
     return verificationCodes[upperCode] || null;
-  };
-
-  // Developer function to grant admin access for testing
-  const activateDevAdminAccess = async () => {
-    Alert.alert(
-      'Developer Mode',
-      'Grant admin access using TEST_ADMIN_001 verification code?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Grant Access',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              
-              if (!userId) {
-                Alert.alert('Error', 'No user ID found. Please make sure you are logged in.');
-                setLoading(false);
-                return;
-              }
-
-              console.log('Granting admin access for user:', userId);
-              
-              // Use the actual TEST_ADMIN_001 verification code data
-              const testBarangayData = {
-                verificationCode: "TEST_ADMIN_001",
-                barangay: "Test Barangay",
-                municipality: "Test Municipality",
-                province: "Test Province",
-                isActive: true
-              };
-              
-              // Update user document with admin verification using real verification code
-              const userDocRef = doc(db, 'users', userId);
-              const updateData = {
-                isVerifiedOfficial: true,
-                officialRole: 'barangay_captain',
-                verificationStatus: 'approved',
-                canBroadcast: true,
-                // Store barangayAssignment as string for compatibility
-                barangayAssignment: `${testBarangayData.barangay}, ${testBarangayData.municipality}, ${testBarangayData.province}`,
-                // Also store as object in verificationData for detailed info
-                verificationData: {
-                  verificationCode: testBarangayData.verificationCode,
-                  barangay: testBarangayData.barangay,
-                  municipality: testBarangayData.municipality,
-                  province: testBarangayData.province,
-                  barangayAssignment: {
-                    region: 'Region X (Northern Mindanao)',
-                    province: testBarangayData.province,
-                    municipality: testBarangayData.municipality,
-                    barangay: testBarangayData.barangay
-                  },
-                  submittedRole: 'barangay_captain',
-                  submittedAt: new Date().toISOString(),
-                  verifiedAt: serverTimestamp(),
-                  verifiedBy: 'developer_mode_auto_approval',
-                  status: 'approved',
-                  adminNotes: 'Automatically approved via developer mode using TEST_ADMIN_001 verification code'
-                }
-              };
-
-              console.log('Updating user document with:', updateData);
-              await updateDoc(userDocRef, updateData);
-              console.log('Admin access granted successfully using TEST_ADMIN_001!');
-
-              // Force a small delay to ensure Firestore has time to propagate
-              await new Promise(resolve => setTimeout(resolve, 1000));
-
-              Alert.alert(
-                'Admin Access Granted! ✅',
-                `You are now verified as Barangay Captain of ${testBarangayData.barangay}!\n\n• Access Admin Panel\n• Send Emergency Broadcasts\n• Manage Family Settings\n• Review Verification Requests\n\nNote: UI may take a moment to update.`,
-                [
-                  { 
-                    text: 'Go to Admin Panel', 
-                    onPress: () => {
-                      setLoading(false);
-                      navigation.navigate('AdminPanel');
-                    }
-                  },
-                  { 
-                    text: 'Refresh Page', 
-                    onPress: () => {
-                      setLoading(false);
-                      // Force re-render by navigating away and back
-                      navigation.navigate('Home');
-                      setTimeout(() => navigation.navigate('OfficialVerification'), 100);
-                    }
-                  },
-                  { 
-                    text: 'OK', 
-                    onPress: () => setLoading(false)
-                  }
-                ]
-              );
-            } catch (error) {
-              console.error('Error granting admin access:', error);
-              Alert.alert(
-                'Error', 
-                `Failed to grant admin access: ${error.message}\n\nPlease check your internet connection and try again.`
-              );
-              setLoading(false);
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  // Function to show available verification codes for debugging
-  const showAvailableCodes = () => {
-    const codeList = Object.keys(verificationCodes).map(code => {
-      const data = verificationCodes[code];
-      return `• ${code} - ${data.barangay}, ${data.municipality}, ${data.province}`;
-    }).join('\n');
-
-    Alert.alert(
-      'Available Verification Codes',
-      codeList || 'No verification codes loaded',
-      [{ text: 'OK' }]
-    );
-  };
-
-  // Function to check current user data in Firestore
-  const checkUserData = async () => {
-    try {
-      if (!userId) {
-        Alert.alert('Error', 'No user ID found');
-        return;
-      }
-
-      const userDocRef = doc(db, 'users', userId);
-      const userDocSnap = await getDoc(userDocRef);
-      
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        const debugInfo = `
-User Document Data:
-• isVerifiedOfficial: ${userData.isVerifiedOfficial}
-• officialRole: ${userData.officialRole}
-• verificationStatus: ${userData.verificationStatus}
-• canBroadcast: ${userData.canBroadcast}
-• barangayAssignment: ${userData.barangayAssignment ? JSON.stringify(userData.barangayAssignment) : 'None'}
-
-Profile Data:
-• profile.isVerifiedOfficial: ${userData.profile?.isVerifiedOfficial}
-• profile.officialRole: ${userData.profile?.officialRole}
-• profile.verificationStatus: ${userData.profile?.verificationStatus}
-        `.trim();
-
-        Alert.alert('Current User Data', debugInfo, [{ text: 'OK' }]);
-      } else {
-        Alert.alert('Error', 'User document does not exist');
-      }
-    } catch (error) {
-      Alert.alert('Error', `Failed to fetch user data: ${error.message}`);
-    }
   };
 
   const submitVerificationRequest = async () => {
@@ -442,87 +230,14 @@ Profile Data:
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={32} color="white" />
-          </TouchableOpacity>
-          <View style={styles.logoWrapper}>
-            <Image source={Logo} style={styles.logoImage} />
-            <Text style={styles.logo}>
-              <Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>Safe</Text>
-              <Text style={{ color: "#E82222", fontWeight: "bold", fontSize: 18 }}>Link</Text>
-            </Text>
-          </View>
-          <TouchableOpacity onPress={showMenu} style={styles.hamburgerButton}>
-            <Ionicons name="menu" size={32} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Title */}
-      <View style={styles.titleRow}>
-        <Ionicons name="shield-checkmark" size={24} color="#0891b2" />
-        <Text style={styles.title}>Official Verification</Text>
-      </View>
+    <View style={styles.container}>
+      <AppHeader title="Official Verification" navigation={navigation} />
 
       <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
         {/* Current Status */}
         {getStatusDisplay()}
 
-        {/* Developer Admin Access Button - Only show if not already verified */}
-        {!isVerifiedOfficial && (
-          <View style={styles.developerSection}>
-            <Text style={styles.developerSectionTitle}>🔧 Developer Tools</Text>
-            
-            {/* Debug Info */}
-            <View style={styles.debugInfo}>
-              <Text style={styles.debugText}>Current Status:</Text>
-              <Text style={styles.debugText}>• User ID: {userId || 'Not found'}</Text>
-              <Text style={styles.debugText}>• Verified: {isVerifiedOfficial ? 'Yes' : 'No'}</Text>
-              <Text style={styles.debugText}>• Status: {verificationStatus || 'none'}</Text>
-            </View>
-            
-            <TouchableOpacity 
-              style={styles.devAdminButton}
-              onPress={activateDevAdminAccess}
-              disabled={loading}
-            >
-              <Ionicons name="build" size={20} color="white" />
-              <Text style={styles.devAdminButtonText}>
-                {loading ? 'Granting Access...' : 'Grant Admin Access (TEST_ADMIN_001)'}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.devAdminButton, { backgroundColor: '#0891b2', marginTop: 8 }]}
-              onPress={showAvailableCodes}
-              disabled={loading}
-            >
-              <Ionicons name="list" size={20} color="white" />
-              <Text style={styles.devAdminButtonText}>
-                Show Available Verification Codes
-              </Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.devAdminButton, { backgroundColor: '#9C27B0', marginTop: 8 }]}
-              onPress={checkUserData}
-              disabled={loading}
-            >
-              <Ionicons name="document-text" size={20} color="white" />
-              <Text style={styles.devAdminButtonText}>
-                Check Current User Data
-              </Text>
-            </TouchableOpacity>
-            
-            <Text style={styles.developerNote}>
-              Using official TEST_ADMIN_001 verification code from system
-            </Text>
-          </View>
-        )}
 
         {/* Loading State for Verification Codes */}
         {fetchingCodes && (
@@ -717,13 +432,6 @@ Profile Data:
       </Modal>
 
       {/* Hamburger Menu */}
-      <HamburgerMenu
-        menuVisible={menuVisible}
-        setMenuVisible={setMenuVisible}
-        slideAnim={slideAnim}
-        opacityAnim={opacityAnim}
-        navigation={navigation}
-      />
-    </SafeAreaView>
+    </View>
   );
 }

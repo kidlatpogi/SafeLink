@@ -18,7 +18,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 30,
+    marginTop: 55,
   },
   logoWrapper: {
     flexDirection: "row",
@@ -53,6 +53,88 @@ export default StyleSheet.create({
     marginLeft: 8,
     color: "black",
   },
+  
+  // Status display styles
+  statusContainer: {
+    alignItems: "center",
+    marginVertical: 20,
+    paddingHorizontal: 20,
+  },
+  statusLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#424242",
+    marginBottom: 10,
+  },
+  statusIndicator: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignItems: "center",
+  },
+  statusText: {
+    fontSize: 16,
+    color: "white",
+    fontWeight: "bold",
+  },
+  
+  // Options container
+  optionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#424242",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  
+  // Status buttons
+  statusButton: {
+    marginVertical: 8,
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 10,
+  },
+  
+  // Instructions section
+  instructionsContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    backgroundColor: "#FFF8E1",
+    marginHorizontal: 20,
+    borderRadius: 8,
+    padding: 15,
+  },
+  instructionsTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#F57F17",
+    marginBottom: 8,
+  },
+  instructionsText: {
+    fontSize: 14,
+    color: "#424242",
+    lineHeight: 20,
+  },
+  
   profileSection: {
     alignItems: "center",
     marginVertical: 30,

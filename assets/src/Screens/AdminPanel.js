@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,13 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Modal,
-  TextInput,
-  Image,
-  Animated
+  TextInput
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useUser } from '../Components/UserContext';
-import HamburgerMenu from '../Components/HamburgerMenu';
+import AppHeader from '../Components/AppHeader';
 import Logo from '../Images/SafeLink_LOGO.png';
 import styles from '../Styles/AdminPanel.styles';
 
@@ -30,27 +28,6 @@ export default function AdminPanel({ navigation }) {
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewAction, setReviewAction] = useState(''); // 'approve' or 'reject'
-  
-  // Hamburger menu state
-  const [menuVisible, setMenuVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-280)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-
-  const showMenu = () => {
-    setMenuVisible(true);
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   // Check if user is super admin (barangay captain or higher)
   const isSuperAdmin = isVerifiedOfficial && ['barangay_captain', 'emergency_coordinator'].includes(officialRole);
@@ -172,30 +149,13 @@ export default function AdminPanel({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={32} color="white" />
-          </TouchableOpacity>
-          <View style={styles.logoWrapper}>
-            <Image source={Logo} style={styles.logoImage} />
-            <Text style={styles.logo}>
-              <Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>Safe</Text>
-              <Text style={{ color: "#E82222", fontWeight: "bold", fontSize: 18 }}>Link</Text>
-            </Text>
-          </View>
-          <TouchableOpacity onPress={showMenu} style={styles.hamburgerButton}>
-            <Ionicons name="menu" size={32} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Title */}
-      <View style={styles.titleRow}>
-        <Ionicons name="people-outline" size={24} color="#0891b2" />
-        <Text style={styles.title}>Verification Management</Text>
-      </View>
+      {/* App Header */}
+      <AppHeader 
+        title="Verification Management"
+        icon="people-outline"
+        navigation={navigation}
+        backgroundColor="#0891b2"
+      />
 
       <ScrollView style={styles.content}>
         {/* Statistics */}
@@ -365,14 +325,6 @@ export default function AdminPanel({ navigation }) {
         </View>
       </Modal>
 
-      {/* Hamburger Menu */}
-      <HamburgerMenu
-        menuVisible={menuVisible}
-        setMenuVisible={setMenuVisible}
-        slideAnim={slideAnim}
-        opacityAnim={opacityAnim}
-        navigation={navigation}
-      />
     </SafeAreaView>
   );
 }

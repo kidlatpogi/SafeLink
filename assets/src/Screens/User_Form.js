@@ -1,68 +1,23 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   ScrollView,
   KeyboardAvoidingView,
   Alert,
   Platform,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Dimensions,
 } from "react-native";
 import { auth, db } from '../firebaseConfig';
 import { updateProfile } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
 
 import styles from '../Styles/Create_Account.styles'; // Reusing styles
 
-// Enhanced styles for the professional header
-const enhancedStyles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FF6F00',
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-    fontFamily: 'Montserrat-VariableFont_wght',
-  },
-});
-
 // Import components
-import UserFormHeader from '../Components/UserFormHeader';
 import NameInputs from '../Components/NameInputs';
 import PhoneInput from '../Components/PhoneInput';
 import PhilippineAddressSelector from '../Components/PhilippineAddressSelector';
-import HamburgerMenu from '../Components/HamburgerMenu';
-// import LocationSettings from '../Components/LocationSettings'; // Temporarily disabled
+import AppHeader from '../Components/AppHeader';
 import BirthdatePicker from '../Components/BirthdatePicker';
 import InfoBox from '../Components/InfoBox';
 import UserFormActions from '../Components/UserFormActions';
@@ -76,11 +31,6 @@ export default function User_Form({ navigation, route }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
-  
-  // Animation values for hamburger menu
-  const slideAnim = useRef(new Animated.Value(-280)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
   
   // Administrative location state
   const [administrativeLocation, setAdministrativeLocation] = useState({
@@ -138,22 +88,6 @@ export default function User_Form({ navigation, route }) {
 
     checkExistingProfile();
   }, []);
-
-  const showMenu = () => {
-    setIsMenuVisible(true);
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   const handleSaveProfile = async () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -309,28 +243,12 @@ export default function User_Form({ navigation, route }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      {/* Enhanced Header */}
-      <View style={enhancedStyles.header}>
-        <TouchableOpacity 
-          style={enhancedStyles.headerButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={32} color="#fff" />
-        </TouchableOpacity>
-        
-        <View style={enhancedStyles.headerCenter}>
-          <Text style={enhancedStyles.headerTitle}>
-            {isEditMode ? 'Edit Profile' : 'Complete Profile'}
-          </Text>
-        </View>
-        
-        <TouchableOpacity 
-          style={enhancedStyles.headerButton}
-          onPress={showMenu}
-        >
-          <Ionicons name="menu" size={32} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      {/* App Header */}
+      <AppHeader 
+        title={isEditMode ? 'Edit Profile' : 'Complete Profile'}
+        icon="person"
+        navigation={navigation}
+      />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -384,14 +302,6 @@ export default function User_Form({ navigation, route }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      
-      <HamburgerMenu 
-        menuVisible={isMenuVisible}
-        setMenuVisible={setIsMenuVisible}
-        slideAnim={slideAnim}
-        opacityAnim={opacityAnim}
-        navigation={navigation}
-      />
     </View>
   );
 }

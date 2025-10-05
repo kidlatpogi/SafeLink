@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { 
   View, 
   Text, 
@@ -8,9 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
-  StatusBar,
-  SafeAreaView,
-  Animated
+  SafeAreaView
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,7 +20,7 @@ import { useUser } from "../Components/UserContext";
 import { getBroadcastSettings } from "../Components/BroadcastSettings";
 import styles from "../Styles/BroadcastFeed.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
-import HamburgerMenu from "../Components/HamburgerMenu";
+import AppHeader from "../Components/AppHeader";
 
 // Calculate distance between two coordinates in kilometers
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -90,11 +88,6 @@ export default function BroadcastFeed({ navigation }) {
     radius: 20,
     adminEnabled: true,
   });
-
-  // Hamburger menu state
-  const [menuVisible, setMenuVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-280)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // Load user profile and broadcast settings on mount
   useEffect(() => {
@@ -282,23 +275,6 @@ export default function BroadcastFeed({ navigation }) {
     setRefreshing(false);
   };
 
-  // Hamburger menu functions
-  const showMenu = () => {
-    setMenuVisible(true);
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
   const getFilterDescription = () => {
     const parts = [];
     
@@ -484,25 +460,12 @@ export default function BroadcastFeed({ navigation }) {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar backgroundColor="#FF6F00" barStyle="light-content" />
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={32} color="white" />
-          </TouchableOpacity>
-          <View style={styles.logoWrapper}>
-            <Image source={Logo} style={styles.logo} />
-            <Text style={styles.headerTitle}>SafeLink</Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.hamburgerButton}
-            onPress={showMenu}
-          >
-            <Ionicons name="menu" size={32} color="white" />
-          </TouchableOpacity>
-        </View>
+        {/* App Header */}
+        <AppHeader 
+          title="Broadcast Feed"
+          icon="notifications"
+          navigation={navigation}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6F00" />
           <Text style={styles.loadingText}>Loading emergency broadcasts...</Text>
@@ -513,26 +476,12 @@ export default function BroadcastFeed({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FF6F00" barStyle="light-content" />
-      
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={32} color="white" />
-        </TouchableOpacity>
-        <View style={styles.logoWrapper}>
-          <Image source={Logo} style={styles.logo} />
-          <Text style={styles.headerTitle}>SafeLink</Text>
-        </View>
-        <TouchableOpacity 
-          style={styles.hamburgerButton}
-          onPress={showMenu}
-        >
-          <Ionicons name="menu" size={32} color="white" />
-        </TouchableOpacity>
-      </View>
+      {/* App Header */}
+      <AppHeader 
+        title="Broadcast Feed"
+        icon="notifications"
+        navigation={navigation}
+      />
 
       {locationError && (
         <View style={styles.errorContainer}>
@@ -577,15 +526,6 @@ export default function BroadcastFeed({ navigation }) {
           </View>
         }
         showsVerticalScrollIndicator={false}
-      />
-
-      {/* Hamburger Menu */}
-      <HamburgerMenu
-        menuVisible={menuVisible}
-        setMenuVisible={setMenuVisible}
-        slideAnim={slideAnim}
-        opacityAnim={opacityAnim}
-        navigation={navigation}
       />
     </SafeAreaView>
   );
