@@ -118,14 +118,16 @@ export default function FamilyCheckIn({ navigation, route }) {
     switch (status?.toLowerCase()) {
       case "i'm safe":
         return "#4CAF50";
-      case "not yet responded":
-        return "#FF9800";
-      case "unknown":
-        return "#9E9E9E";
-      case "evacuated":
+      case "needs help":
         return "#F44336";
-      default:
+      case "evacuated":
         return "#FF9800";
+      case "not yet responded":
+        return "#9E9E9E";
+      case "unknown":
+        return "#757575";
+      default:
+        return "#9E9E9E";
     }
   };
 
@@ -153,14 +155,16 @@ export default function FamilyCheckIn({ navigation, route }) {
     switch (buttonStatus.toLowerCase()) {
       case "i'm safe":
         return "#4CAF50";
-      case "not yet responded":
-        return "#FF9800";
-      case "unknown":
-        return "#9E9E9E";
-      case "evacuated":
+      case "needs help":
         return "#F44336";
-      default:
+      case "evacuated":
         return "#FF9800";
+      case "not yet responded":
+        return "#9E9E9E";
+      case "unknown":
+        return "#757575";
+      default:
+        return "#9E9E9E";
     }
   };
 
@@ -225,28 +229,15 @@ export default function FamilyCheckIn({ navigation, route }) {
           </View>
         </TouchableOpacity>
 
-        {/* Unknown */}
+        {/* Needs Help - NEW */}
         <TouchableOpacity
-          style={[styles.statusButton, getButtonStyle("Unknown")]}
-          onPress={() => updateStatus("Unknown")}
+          style={[styles.statusButton, getButtonStyle("Needs Help")]}
+          onPress={() => updateStatus("Needs Help")}
         >
           <View style={styles.buttonContent}>
-            <Ionicons name="help-circle" size={24} color={getButtonTextColor("Unknown")} />
-            <Text style={[styles.buttonText, { color: getButtonTextColor("Unknown") }]}>
-              Unknown
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Not Yet Responded */}
-        <TouchableOpacity
-          style={[styles.statusButton, getButtonStyle("Not Yet Responded")]}
-          onPress={() => updateStatus("Not Yet Responded")}
-        >
-          <View style={styles.buttonContent}>
-            <Ionicons name="time" size={24} color={getButtonTextColor("Not Yet Responded")} />
-            <Text style={[styles.buttonText, { color: getButtonTextColor("Not Yet Responded") }]}>
-              Not Yet Responded
+            <Ionicons name="alert-circle" size={24} color={getButtonTextColor("Needs Help")} />
+            <Text style={[styles.buttonText, { color: getButtonTextColor("Needs Help") }]}>
+              Needs Help
             </Text>
           </View>
         </TouchableOpacity>

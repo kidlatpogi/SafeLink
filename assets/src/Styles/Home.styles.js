@@ -462,4 +462,48 @@ logoImage: {
     letterSpacing: 0.2,
     textAlign: "center",
   },
+
+  // Quick Status Button Styles
+  quickStatusContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    gap: 8,
+  },
+  quickStatusButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  quickStatusText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+  currentStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+  },
+  currentStatusLabel: {
+    fontSize: 12,
+    color: "#757575",
+  },
+  currentStatusValue: {
+    fontSize: 12,
+    fontWeight: "bold",
+  },
 });
