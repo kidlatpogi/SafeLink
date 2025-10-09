@@ -34,12 +34,15 @@ export default function AdminPanel({ navigation }) {
   const [grantBroadcast, setGrantBroadcast] = useState(true); // Can broadcast
   const [grantAdminAccess, setGrantAdminAccess] = useState(false); // Can access admin panel
 
-  // Check if user is super admin (barangay captain or higher)
+  // Check if user has admin access permission
+  const hasAdminPermission = userData?.profile?.canAccessAdmin || userData?.profile?.permissions?.admin || false;
+  
+  // Check if user is super admin (barangay captain or higher) - legacy fallback
   const isSuperAdmin = isVerifiedOfficial && ['barangay_captain', 'emergency_coordinator'].includes(officialRole);
   
   // Temporary bypass for testing - remove in production
   const isTestingMode = true; // Set to false in production
-  const hasAdminAccess = isSuperAdmin || isTestingMode;
+  const hasAdminAccess = hasAdminPermission || isSuperAdmin || isTestingMode;
 
   // Get current user's administrative location for filtering
   const currentUserLocation = userData?.profile?.administrativeLocation || null;
@@ -262,14 +265,15 @@ export default function AdminPanel({ navigation }) {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (!isSuperAdmin) {
+  if (!hasAdminAccess) {
     return (
       <View style={styles.container}>
         <View style={styles.accessDenied}>
           <Ionicons name="shield-outline" size={64} color="#666" />
           <Text style={styles.accessDeniedTitle}>Access Restricted</Text>
           <Text style={styles.accessDeniedText}>
-            Only verified barangay captains can access the admin panel.
+            You need admin panel access permission to use verification management. 
+            Contact your barangay captain or emergency coordinator for access.
           </Text>
         </View>
       </View>
