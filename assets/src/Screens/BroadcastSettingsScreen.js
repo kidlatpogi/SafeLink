@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   Animated,
   Dimensions,
@@ -13,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { auth, db } from '../firebaseConfig';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import BroadcastSettings from '../Components/BroadcastSettings';
-import HamburgerMenu from '../Components/HamburgerMenu';
+import AppHeader from '../Components/AppHeader';
 
 const BroadcastSettingsScreen = ({ navigation }) => {
   const [broadcastSettings, setBroadcastSettings] = useState({
@@ -22,32 +21,11 @@ const BroadcastSettingsScreen = ({ navigation }) => {
     adminEnabled: true,
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
-  
-  // Animation values for hamburger menu
-  const slideAnim = useRef(new Animated.Value(-280)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // Load existing settings on mount
   useEffect(() => {
     loadUserSettings();
   }, []);
-
-  const showMenu = () => {
-    setIsMenuVisible(true);
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   const loadUserSettings = async () => {
     try {
@@ -100,28 +78,8 @@ const BroadcastSettingsScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={32} color="#fff" />
-        </TouchableOpacity>
-        
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Broadcast Settings</Text>
-          <Text style={styles.headerSubtitle}>Configure your alert preferences</Text>
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={showMenu}
-        >
-          <Ionicons name="menu" size={32} color="#fff" />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <AppHeader title="Broadcast Settings" navigation={navigation} />
 
       {/* Content */}
       <View style={styles.content}>
@@ -162,15 +120,7 @@ const BroadcastSettingsScreen = ({ navigation }) => {
           </Text>
         </View>
       </View>
-      
-      <HamburgerMenu 
-        menuVisible={isMenuVisible}
-        setMenuVisible={setIsMenuVisible}
-        slideAnim={slideAnim}
-        opacityAnim={opacityAnim}
-        navigation={navigation}
-      />
-    </SafeAreaView>
+    </View>
   );
 };
 

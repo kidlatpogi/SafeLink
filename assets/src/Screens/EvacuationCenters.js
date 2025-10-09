@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,140 +6,363 @@ import {
   Image,
   Linking,
   ScrollView,
+  Alert,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import useLocation from "../Components/useLocation";
 import styles from "../Styles/EvacuationCenters.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
 
-// Example list of centers with coordinates
-const centers = [
-  {
-    id: "1",
-    name: "Dasma Evacuation Center",
-    lat: 14.3294,
-    lon: 120.9367,
-    address: "Dasmariñas, Cavite",
-  },
-  {
-    id: "2",
-    name: "Imus Evacuation Center",
-    lat: 14.4064,
-    lon: 120.9408,
-    address: "Imus, Cavite",
-  },
-  {
-    id: "3",
-    name: "Indang Evacuation Center",
-    lat: 14.1889,
-    lon: 120.8775,
-    address: "Indang, Cavite",
-  },
-];
+const { width, height } = Dimensions.get('window');
 
-export default function EvacuationCenters({ navigation }) {
-  // Use optimized location with normal mode (balanced accuracy for navigation)
-  const { location, loading: locationLoading, error: locationError } = useLocation({
-    enableTracking: true,
-    emergencyMode: false, // Normal mode for evacuation center routing
-    onLocationUpdate: (newLocation) => {
-      // Find nearest center when location updates
-      findNearest(newLocation);
+const EvacuationCenters = ({ navigation, route }) => {
+  const location = useLocation();
+  const mapRef = useRef(null);
+  const [evacuationCenters, setEvacuationCenters] = useState([]);
+  const [selectedCenter, setSelectedCenter] = useState(null);
+  const [mapType, setMapType] = useState('standard');
+  
+  // Get auto-route parameter
+  const { autoRoute } = route.params || {};
+
+  // Memoize the static centers data to prevent unnecessary re-renders
+  const staticCenters = useMemo(() => [
+    {
+      id: 1,
+      name: "Dasmarinas National High School",
+      address: "San Agustin III, Dasmariñas, Cavite",
+      capacity: "500 people",
+      type: "Flood and Typhoon Evacuation",
+      coordinates: {
+        latitude: 14.3294,
+        longitude: 120.9367,
+      },
+      facilities: ["Restrooms", "Electricity", "Water Source", "Medical Station"]
+    },
+    {
+      id: 2,
+      name: "Paliparan Elementary School",
+      address: "Paliparan I, Dasmariñas, Cavite",
+      capacity: "300 people",
+      type: "General Emergency Evacuation",
+      coordinates: {
+        latitude: 14.3156,
+        longitude: 120.9489,
+      },
+      facilities: ["Restrooms", "Electricity", "Water Source"]
+    },
+    {
+      id: 3,
+      name: "San Agustin Parish Church",
+      address: "San Agustin I, Dasmariñas, Cavite",
+      capacity: "200 people",
+      type: "Temporary Shelter",
+      coordinates: {
+        latitude: 14.3278,
+        longitude: 120.9445,
+      },
+      facilities: ["Restrooms", "Water Source", "Food Preparation Area"]
+    },
+    {
+      id: 4,
+      name: "Barangay Salitran Hall",
+      address: "Salitran IV, Dasmariñas, Cavite",
+      capacity: "150 people",
+      type: "Community Emergency Center",
+      coordinates: {
+        latitude: 14.3098,
+        longitude: 120.9523,
+      },
+      facilities: ["Restrooms", "Electricity", "Communication Equipment"]
+    },
+    {
+      id: 5,
+      name: "De La Salle University - Dasmarinas",
+      address: "Dasmariñas, Cavite",
+      capacity: "1000 people",
+      type: "Major Emergency Evacuation",
+      coordinates: {
+        latitude: 14.3237,
+        longitude: 120.9367,
+      },
+      facilities: ["Restrooms", "Electricity", "Water Source", "Medical Station", "Cafeteria", "Gymnasium"]
     }
-  });
+  ], []);
 
-  const [nearest, setNearest] = useState(null);
-
-  // Find nearest evacuation center when location becomes available
   useEffect(() => {
-    if (location) {
-      findNearest(location);
+    if (location?.latitude && location?.longitude) {
+      // Calculate distances and sort by nearest
+      const centersWithDistance = staticCenters.map(center => ({
+        ...center,
+        distance: calculateDistance(
+          location.latitude,
+          location.longitude,
+          center.coordinates.latitude,
+          center.coordinates.longitude
+        )
+      }));
+
+      centersWithDistance.sort((a, b) => a.distance - b.distance);
+      setEvacuationCenters(centersWithDistance);
+    } else {
+      setEvacuationCenters(staticCenters);
     }
-  }, [location]);
+  }, [location?.latitude, location?.longitude, staticCenters]);
 
-  const findNearest = (locationData) => {
-    if (!locationData) return;
-    
-    let minDist = Infinity;
-    let nearestCenter = null;
-
-    centers.forEach((c) => {
-      let d = getDistance(locationData.latitude, locationData.longitude, c.lat, c.lon);
-      if (d < minDist) {
-        minDist = d;
-        nearestCenter = c;
+  // Auto-route to nearest center if requested from home screen
+  useEffect(() => {
+    if (autoRoute && evacuationCenters.length > 0) {
+      // Find the nearest center with distance or use first one
+      const nearestCenter = evacuationCenters.find(center => center.distance) || evacuationCenters[0];
+      
+      if (nearestCenter) {
+        // Small delay to ensure the screen is fully loaded
+        const timer = setTimeout(() => {
+          console.log('Auto-routing to nearest evacuation center:', nearestCenter.name);
+          openDirections(nearestCenter);
+        }, 1500);
+        return () => clearTimeout(timer);
       }
-    });
+    }
+  }, [autoRoute, evacuationCenters]);
 
-    setNearest(nearestCenter);
-  };
-
-  const getDistance = (lat1, lon1, lat2, lon2) => {
-    let R = 6371; // km
-    let dLat = ((lat2 - lat1) * Math.PI) / 180;
-    let dLon = ((lon2 - lon1) * Math.PI) / 180;
-    let a =
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
-    let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
-  const openRoute = (center) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${center.lat},${center.lon}`;
-    Linking.openURL(url);
+  const openDirections = (center) => {
+    console.log('Opening directions to:', center.name);
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${center.coordinates.latitude},${center.coordinates.longitude}&travelmode=driving`;
+    Linking.openURL(url).catch((error) => {
+      console.error('Error opening maps:', error);
+      Alert.alert(
+        "Cannot Open Maps",
+        "Please make sure you have Google Maps installed on your device.",
+        [{ text: "OK" }]
+      );
+    });
+  };
+
+  const openNearestRoute = () => {
+    if (evacuationCenters.length > 0) {
+      const nearest = evacuationCenters[0];
+      openDirections(nearest);
+    }
+  };
+
+  const focusOnCenter = (center) => {
+    setSelectedCenter(center);
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: center.coordinates.latitude,
+        longitude: center.coordinates.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 1000);
+    }
+  };
+
+  const toggleMapType = () => {
+    setMapType(mapType === 'standard' ? 'hybrid' : 'standard');
+  };
+
+  const getInitialRegion = () => {
+    if (location.latitude && location.longitude) {
+      return {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      };
+    }
+    
+    // Default to Dasmarinas, Cavite if no location
+    return {
+      latitude: 14.3294,
+      longitude: 120.9367,
+      latitudeDelta: 0.05,
+      longitudeDelta: 0.05,
+    };
   };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Image source={Logo} style={styles.logo} />
+        <Text style={styles.headerTitle}>Evacuation Centers</Text>
+      </View>
+
+      {/* Map View */}
+      <View style={styles.mapContainer}>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          mapType={mapType}
+          initialRegion={getInitialRegion()}
+          showsUserLocation={true}
+          showsMyLocationButton={false}
+          loadingEnabled={true}
+        >
+          {/* User location marker */}
+          {location.latitude && location.longitude && (
+            <Marker
+              coordinate={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+              }}
+              title="Your Location"
+              description="You are here"
+              pinColor="#4285F4"
+            />
+          )}
+
+          {/* Evacuation center markers */}
+          {evacuationCenters.map((center) => (
+            <Marker
+              key={center.id}
+              coordinate={center.coordinates}
+              title={center.name}
+              description={center.address}
+              pinColor="#FF6B6B"
+              onPress={() => setSelectedCenter(center)}
+            />
+          ))}
+        </MapView>
+
+        {/* Map Controls */}
+        <View style={styles.mapControls}>
+          <TouchableOpacity 
+            style={styles.mapControlButton}
+            onPress={toggleMapType}
           >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons 
+              name={mapType === 'standard' ? 'earth' : 'map-outline'} 
+              size={24} 
+              color="#FFFFFF" 
+            />
           </TouchableOpacity>
-          <View style={styles.logoWrapper}>
-            <Image source={Logo} style={styles.logoImage} />
-            <Text style={styles.logo}>
-              <Text style={{ color: "white" }}>Safe</Text>
-              <Text style={{ color: "#E82222" }}>Link</Text>
-            </Text>
-          </View>
-          <View style={styles.backBtn}>
-            <Ionicons name="person-circle" size={32} color="white" />
-          </View>
         </View>
+
+        {/* Quick Route Button */}
+        <TouchableOpacity
+          style={styles.quickRouteButton}
+          onPress={openNearestRoute}
+        >
+          <Ionicons name="navigate" size={24} color="#FFFFFF" />
+          <Text style={styles.quickRouteText}>NEAREST CENTER</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Title */}
-      <View style={styles.titleRow}>
-        <Ionicons name="location" size={22} color="#000" />
-        <Text style={styles.title}>Evacuation Centers</Text>
-      </View>
-
-      {/* Content */}
-      <ScrollView style={styles.list}>
-        {nearest ? (
-          <View style={styles.centerCard}>
-            <Text style={styles.centerName}>{nearest.name}</Text>
-            <Text style={styles.centerAddress}>{nearest.address}</Text>
+      {/* Selected Center Info */}
+      {selectedCenter && (
+        <View style={styles.selectedCenterCard}>
+          <View style={styles.selectedCenterHeader}>
+            <View style={styles.selectedCenterInfo}>
+              <Text style={styles.selectedCenterName}>{selectedCenter.name}</Text>
+              <Text style={styles.selectedCenterAddress}>{selectedCenter.address}</Text>
+              {selectedCenter.distance && (
+                <Text style={styles.selectedCenterDistance}>
+                  📍 {selectedCenter.distance.toFixed(1)} km away
+                </Text>
+              )}
+            </View>
             <TouchableOpacity
-              style={styles.routeButton}
-              onPress={() => openRoute(nearest)}
+              style={styles.closeSelectedButton}
+              onPress={() => setSelectedCenter(null)}
             >
-              <Text style={styles.routeText}>Get Route</Text>
+              <Ionicons name="close" size={24} color="#666" />
             </TouchableOpacity>
           </View>
-        ) : (
-          <Text>Fetching nearest evacuation center...</Text>
-        )}
+
+          <View style={styles.selectedCenterDetails}>
+            <Text style={styles.selectedCenterCapacity}>
+              👥 Capacity: {selectedCenter.capacity}
+            </Text>
+            <Text style={styles.selectedCenterType}>
+              🏠 Type: {selectedCenter.type}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.getDirectionsButton}
+            onPress={() => openDirections(selectedCenter)}
+          >
+            <Ionicons name="navigate" size={20} color="#FFFFFF" />
+            <Text style={styles.getDirectionsText}>GET DIRECTIONS</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Center List */}
+      <ScrollView style={styles.centersList} showsVerticalScrollIndicator={false}>
+        <Text style={styles.centersListTitle}>All Evacuation Centers</Text>
+        {evacuationCenters.map((center) => (
+          <TouchableOpacity
+            key={center.id}
+            style={[
+              styles.centerCard,
+              selectedCenter?.id === center.id && styles.selectedCard
+            ]}
+            onPress={() => focusOnCenter(center)}
+          >
+            <View style={styles.centerCardHeader}>
+              <Text style={styles.centerName}>{center.name}</Text>
+              {center.distance && (
+                <Text style={styles.centerDistance}>
+                  {center.distance.toFixed(1)} km
+                </Text>
+              )}
+            </View>
+            
+            <Text style={styles.centerAddress}>{center.address}</Text>
+            
+            <View style={styles.centerDetails}>
+              <Text style={styles.centerCapacity}>👥 {center.capacity}</Text>
+              <Text style={styles.centerType}>🏠 {center.type}</Text>
+            </View>
+
+            <View style={styles.centerActions}>
+              <TouchableOpacity
+                style={styles.viewOnMapButton}
+                onPress={() => focusOnCenter(center)}
+              >
+                <Ionicons name="map" size={16} color="#4285F4" />
+                <Text style={styles.viewOnMapText}>View on Map</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.routeButton}
+                onPress={() => openDirections(center)}
+              >
+                <Ionicons name="navigate" size={16} color="#FFFFFF" />
+                <Text style={styles.routeButtonText}>Route</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
     </View>
   );
-}
+};
+
+export default EvacuationCenters;

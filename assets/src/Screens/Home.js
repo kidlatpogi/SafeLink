@@ -5,38 +5,14 @@ import { auth } from "../firebaseConfig";
 import styles from "../Styles/Home.styles";
 
 // Import components
-import HomeHeader from "../Components/HomeHeader";
+import AppHeader from "../Components/AppHeader";
 import HomeContent from "../Components/HomeContent";
-import HamburgerMenu from "../Components/HamburgerMenu";
 import LocationManager from "../Components/LocationManager";
 import LocationStatus from "../Components/LocationStatus";
 
 export default function Home({ navigation }) {
   const [user, setUser] = useState(null);
   const [displayName, setDisplayName] = useState("User");
-  const [menuVisible, setMenuVisible] = useState(false);
-
-  // Animation values
-  const slideAnim = useRef(new Animated.Value(-280)).current; // Start off-screen (left)
-  const opacityAnim = useRef(new Animated.Value(0)).current; // Start transparent
-  const screenHeight = Dimensions.get('window').height;
-
-  // Animation function
-  const showMenu = () => {
-    setMenuVisible(true);
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -68,18 +44,10 @@ export default function Home({ navigation }) {
       <LocationManager />
       
       <ScrollView style={styles.container}>
-        <HomeHeader showMenu={showMenu} />
+        <AppHeader showBack={false} backgroundColor="#FF6F00" showLogo={true} navigation={navigation} />
         <LocationStatus styles={styles} />
         <HomeContent displayName={displayName} navigation={navigation} />
       </ScrollView>
-
-      <HamburgerMenu 
-        menuVisible={menuVisible}
-        setMenuVisible={setMenuVisible}
-        slideAnim={slideAnim}
-        opacityAnim={opacityAnim}
-        navigation={navigation}
-      />
     </View>
   );
 }

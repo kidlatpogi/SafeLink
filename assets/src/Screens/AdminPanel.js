@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   Modal,
   TextInput
 } from 'react-native';
@@ -135,7 +134,7 @@ export default function AdminPanel({ navigation }) {
 
   if (!isSuperAdmin) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.accessDenied}>
           <Ionicons name="shield-outline" size={64} color="#666" />
           <Text style={styles.accessDeniedTitle}>Access Restricted</Text>
@@ -143,12 +142,12 @@ export default function AdminPanel({ navigation }) {
             Only verified barangay captains can access the admin panel.
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* App Header */}
       <AppHeader 
         title="Verification Management"
@@ -325,6 +324,6 @@ export default function AdminPanel({ navigation }) {
         </View>
       </Modal>
 
-    </SafeAreaView>
+    </View>
   );
 }

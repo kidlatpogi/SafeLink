@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   Image,
   Alert
 } from 'react-native';
@@ -95,18 +94,18 @@ export default function BroadcastAnalytics({ navigation, route }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4CAF50" />
           <Text style={styles.loadingText}>Loading analytics...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!broadcast) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={64} color="#F44336" />
           <Text style={styles.errorTitle}>Broadcast Not Found</Text>
@@ -117,12 +116,12 @@ export default function BroadcastAnalytics({ navigation, route }) {
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -206,6 +205,6 @@ export default function BroadcastAnalytics({ navigation, route }) {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
