@@ -56,19 +56,25 @@ const LocationStatus = ({ styles }) => {
   };
 
   const refreshLocationStatus = async () => {
+    console.log('Emergency Location: Refresh button pressed');
     setIsRefreshing(true);
     
     try {
       const user = auth.currentUser;
       if (!user) {
+        console.log('Emergency Location: No user logged in');
         Alert.alert("Error", "No user logged in");
         setIsRefreshing(false);
         return;
       }
 
+      console.log('Emergency Location: Requesting permissions...');
       // Request location permissions
       let { status } = await Location.requestForegroundPermissionsAsync();
+      console.log('Emergency Location: Permission status:', status);
+      
       if (status !== 'granted') {
+        console.log('Emergency Location: Permission denied');
         Alert.alert(
           "Permission Denied", 
           "Location permission is required to get your current location."
@@ -77,6 +83,7 @@ const LocationStatus = ({ styles }) => {
         return;
       }
 
+      console.log('Emergency Location: Getting fresh location...');
       // Get fresh live location from device GPS
       const freshLocation = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
@@ -84,6 +91,7 @@ const LocationStatus = ({ styles }) => {
         maximumAge: 1000, // Don't use cached location older than 1 second
       });
 
+      console.log('Emergency Location: Fresh location received:', freshLocation.coords);
       const { latitude, longitude, accuracy } = freshLocation.coords;
       const timestamp = new Date().toISOString();
 
@@ -139,7 +147,11 @@ const LocationStatus = ({ styles }) => {
   };
 
   const showDetailedInfo = () => {
+    console.log('Emergency Location: Detail info button pressed');
+    console.log('Emergency Location: Current locationData:', locationData);
+    
     if (!locationData) {
+      console.log('Emergency Location: No location data available');
       Alert.alert(
         "No Location Data",
         "No location data found. Location tracking might not be enabled or working."
@@ -150,12 +162,15 @@ const LocationStatus = ({ styles }) => {
     const timeDiff = locationData.timestamp ? 
       Math.floor((new Date() - new Date(locationData.timestamp)) / 1000 / 60) : 'Unknown';
 
+    console.log('Emergency Location: Showing detailed info with timeDiff:', timeDiff);
+
     Alert.alert(
-      "Location Details",
+      "🛡️ Emergency Location Details",
       `📍 Coordinates: ${locationData.latitude.toFixed(6)}, ${locationData.longitude.toFixed(6)}\n\n` +
       `🎯 Accuracy: ${locationData.accuracy ? locationData.accuracy.toFixed(0) + 'm' : 'Unknown'}\n\n` +
       `⏰ Last Updated: ${timeDiff !== 'Unknown' ? timeDiff + ' minutes ago' : 'Unknown'}\n\n` +
-      `🕐 Timestamp: ${locationData.timestamp ? new Date(locationData.timestamp).toLocaleString() : 'Unknown'}`,
+      `🕐 Timestamp: ${locationData.timestamp ? new Date(locationData.timestamp).toLocaleString() : 'Unknown'}\n\n` +
+      `🆔 User: ${auth.currentUser?.email || 'Unknown'}`,
       [{ text: 'OK' }]
     );
   };
