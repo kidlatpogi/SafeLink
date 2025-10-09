@@ -47,17 +47,17 @@ class AutoStatusService {
       return;
     }
 
-    // Set timer for "Not Yet Responded" (24 hours of inactivity)
+    // Set timer for "Not Yet Responded" (2 hours of inactivity)
     const notRespondedTimer = setTimeout(() => {
-      this.updateMemberStatus(userId, familyCode, "Not Yet Responded", "Auto: 24h inactivity");
+      this.updateMemberStatus(userId, familyCode, "Not Yet Responded", "Auto: 2h inactivity");
       
-      // Set another timer for "Unknown" (48 hours total)
+      // Set another timer for "Unknown" (6 hours additional = 8h total)
       const unknownTimer = setTimeout(() => {
-        this.updateMemberStatus(userId, familyCode, "Unknown", "Auto: 48h inactivity + no location");
-      }, 24 * 60 * 60 * 1000); // Additional 24 hours = 48h total
+        this.updateMemberStatus(userId, familyCode, "Unknown", "Auto: 8h inactivity + no location");
+      }, 6 * 60 * 60 * 1000); // Additional 6 hours = 8h total
       
       this.statusTimers.set(`${memberId}_unknown`, unknownTimer);
-    }, 24 * 60 * 60 * 1000); // 24 hours
+    }, 2 * 60 * 60 * 1000); // 2 hours
 
     this.statusTimers.set(memberId, notRespondedTimer);
     console.log('AutoStatusService - Set timer for member:', userId);
@@ -148,8 +148,8 @@ class AutoStatusService {
       const lastUpdate = lastLocationUpdate.toDate();
       const timeDiff = now.getTime() - lastUpdate.getTime();
       
-      // Consider inactive if no location update in 12 hours
-      return timeDiff > (12 * 60 * 60 * 1000);
+      // Consider inactive if no location update in 4 hours (half of unknown threshold)
+      return timeDiff > (4 * 60 * 60 * 1000);
     } catch (error) {
       console.error('AutoStatusService - Error checking location activity:', error);
       return true; // Assume inactive if error

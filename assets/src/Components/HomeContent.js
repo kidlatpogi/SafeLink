@@ -58,6 +58,8 @@ const HomeContent = ({ displayName, navigation }) => {
       case "I'm Safe":
       case "SAFE":
         return "#4CAF50";
+      case "Needs Help":
+        return "#F44336"; // Red for Needs Help
       case "Not Yet Responded":
         return "#FF9800";
       case "Unknown":
