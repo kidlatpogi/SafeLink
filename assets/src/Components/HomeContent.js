@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Image, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useUser } from './UserContext';
 import { useFamily } from './FamilyContext';
-import { useNotifications } from './NotificationContext';
 import useLocation from './useLocation';
 import CompactDisasterAlerts from './CompactDisasterAlerts';
 import styles from "../Styles/Home.styles";
@@ -11,8 +10,7 @@ import EvacIcon from "../Images/map.png";
 
 const HomeContent = ({ displayName, navigation }) => {
   const { userId } = useUser();
-  const { family, userStatus, updateUserStatus, familyCode, familyMembers } = useFamily();
-  const { notificationService } = useNotifications();
+  const { family, userStatus } = useFamily();
   
   // Debug navigation and family data
   useEffect(() => {
@@ -33,63 +31,6 @@ const HomeContent = ({ displayName, navigation }) => {
       navigation.navigate(screenName, params);
     } else {
       console.error('Navigation is not available');
-    }
-  };
-
-  // Quick status update function
-  const updateQuickStatus = async (newStatus) => {
-    if (!userId) {
-      Alert.alert("Error", "User not authenticated. Please log in again.");
-      return;
-    }
-
-    if (!familyCode) {
-      Alert.alert("Info", "You need to join or create a family first to update your status.");
-      return;
-    }
-
-    try {
-      console.log('HomeContent - Quick status update:', { newStatus, userId, familyCode });
-      
-      // Update status using FamilyContext
-      const success = await updateUserStatus(newStatus);
-      
-      if (success) {
-        // Send notification to family members
-        if (notificationService && familyMembers?.length > 0) {
-          try {
-            const statusMessage = `${displayName} updated their status to "${newStatus}"`;
-            
-            for (const member of familyMembers) {
-              if (member.userId !== userId && member.pushToken) {
-                await notificationService.sendNotification(
-                  member.pushToken,
-                  'Family Status Update',
-                  statusMessage,
-                  {
-                    type: 'family_status',
-                    userId: userId,
-                    status: newStatus,
-                    memberName: displayName
-                  }
-                );
-              }
-            }
-            console.log('HomeContent - Family notification sent for quick status update');
-          } catch (notificationError) {
-            console.error('HomeContent - Failed to send family notifications:', notificationError);
-          }
-        }
-        
-        Alert.alert("Status Updated", `Your status is now "${newStatus}"`);
-        console.log('HomeContent - Quick status updated successfully:', newStatus);
-      } else {
-        Alert.alert("Error", "Failed to update status. Please try again.");
-        console.error('HomeContent - Quick status update failed');
-      }
-    } catch (err) {
-      console.error("HomeContent - Error updating quick status:", err);
-      Alert.alert("Error", "Failed to update status. Please try again.");
     }
   };
 
@@ -186,42 +127,6 @@ const HomeContent = ({ displayName, navigation }) => {
                   <Ionicons name="navigate" size={12} color="#FFFFFF" />
                   <Text style={styles.evacuationButtonPrimaryText}>NEAREST</Text>
                 </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Quick Status Buttons - NEW */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Quick Status Update</Text>
-            </View>
-            
-            <View style={styles.sectionContent}>
-              <View style={styles.quickStatusContainer}>
-                <TouchableOpacity
-                  style={[styles.quickStatusButton, { backgroundColor: '#4CAF50' }]}
-                  onPress={() => updateQuickStatus("I'm Safe")}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="shield-checkmark" size={20} color="#FFFFFF" />
-                  <Text style={styles.quickStatusText}>I'm Safe</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[styles.quickStatusButton, { backgroundColor: '#F44336' }]}
-                  onPress={() => updateQuickStatus("Needs Help")}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="alert-circle" size={20} color="#FFFFFF" />
-                  <Text style={styles.quickStatusText}>Needs Help</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.currentStatusRow}>
-                <Text style={styles.currentStatusLabel}>Current Status: </Text>
-                <Text style={[styles.currentStatusValue, { color: getStatusColor() }]}>
-                  {userStatus || "Not Set"}
-                </Text>
               </View>
             </View>
           </View>

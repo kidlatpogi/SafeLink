@@ -506,4 +506,34 @@ logoImage: {
     fontSize: 12,
     fontWeight: "bold",
   },
+
+  // Quick Status Card (matches Emergency Location style)
+  quickStatusCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginVertical: 8,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  quickStatusHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  quickStatusTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333333",
+    flex: 1,
+  },
+  quickStatusContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
 });

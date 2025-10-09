@@ -9,6 +9,7 @@ import AppHeader from "../Components/AppHeader";
 import HomeContent from "../Components/HomeContent";
 import LocationManager from "../Components/LocationManager";
 import LocationStatus from "../Components/LocationStatus";
+import QuickStatusUpdate from "../Components/QuickStatusUpdate";
 
 export default function Home({ navigation }) {
   const [user, setUser] = useState(null);
@@ -46,6 +47,7 @@ export default function Home({ navigation }) {
       <ScrollView style={styles.container}>
         <AppHeader showBack={false} backgroundColor="#FF6F00" showLogo={true} navigation={navigation} />
         <LocationStatus styles={styles} />
+        <QuickStatusUpdate displayName={displayName} />
         <HomeContent displayName={displayName} navigation={navigation} />
       </ScrollView>
     </View>
