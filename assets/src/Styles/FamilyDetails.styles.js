@@ -229,13 +229,32 @@ export default StyleSheet.create({
   locationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 8,
+  },
+  locationTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   locationTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#666',
     marginLeft: 8,
+  },
+  mapsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  mapsButtonText: {
+    fontSize: 12,
+    color: '#2196F3',
+    marginLeft: 4,
+    fontWeight: '500',
   },
   locationDetails: {
     paddingLeft: 24,

@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import styles from '../Styles/Home.styles';
+import styles from '../Styles/Home.styles.new';
 import Logo from "../Images/SafeLink_LOGO.png";
 
 const HomeHeader = ({ showMenu }) => {

@@ -4,79 +4,51 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useUser } from './UserContext';
 import { useFamily } from './FamilyContext';
 import useLocation from './useLocation';
+import CompactDisasterAlerts from './CompactDisasterAlerts';
 import styles from "../Styles/Home.styles";
 import EvacIcon from "../Images/map.png";
-
-const API_KEY = "c956f87c395021c41caf56aba8b6d870"; // OpenWeather API Key
 
 const HomeContent = ({ displayName, navigation }) => {
   const { userId } = useUser();
   const { family, userStatus } = useFamily();
   
-  // Debug family data
+  // Debug navigation and family data
   useEffect(() => {
+    console.log('HomeContent - Navigation prop:', !!navigation);
     console.log('HomeContent - Family data:', { 
       familyCount: family?.length || 0, 
       userStatus, 
       family: family 
     });
-  }, [family, userStatus]);
+  }, [family, userStatus, navigation]);
   
   // Use optimized location hook with automatic tracking
   const { location, loading: locationLoading, error: locationError } = useLocation();
-  
-  const [weather, setWeather] = useState(null);
-  const [city, setCity] = useState(null);
-  const [weatherLoading, setWeatherLoading] = useState(true);
 
-  // Fetch weather for a specific location
-  const fetchWeatherForLocation = async (latitude, longitude) => {
-    try {
-      setWeatherLoading(true);
-      
-      const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`
-      );
-
-      const data = await response.json();
-
-      if (response.ok && data.weather && data.weather.length > 0) {
-        setWeather(data.weather[0].main);
-        setCity(data.name);
-      } else {
-        console.warn("Weather API error:", data.message);
-        setWeather(null);
-        setCity(null);
-      }
-    } catch (error) {
-      console.error("Failed to fetch weather:", error);
-      setWeather(null);
-      setCity(null);
-    } finally {
-      setWeatherLoading(false);
+  // Safe navigation function
+  const safeNavigate = (screenName, params = {}) => {
+    if (navigation && navigation.navigate) {
+      navigation.navigate(screenName, params);
+    } else {
+      console.error('Navigation is not available');
     }
   };
-
-  // Initial weather fetch when location becomes available
-  useEffect(() => {
-    if (location && !weather) {
-      fetchWeatherForLocation(location.latitude, location.longitude);
-    }
-  }, [location]);
 
   // Get status color for Family Check-In
   const getStatusColor = () => {
     switch (userStatus) {
       case "I'm Safe":
         return "#4CAF50";
-      case "Not Yet Responded":
-        return "#FF9800";
-      case "Unknown":
-        return "#9E9E9E";
-      case "Evacuated":
+      case "Needs Help":
         return "#F44336";
-      default:
+      case "Evacuated":
         return "#FF9800";
+      case "Not Yet Responded":
+        return "#9E9E9E";
+      case "Unknown":
+        return "#757575";
+      default:
+        return "#9E9E9E";
     }
   };
 
@@ -86,6 +58,8 @@ const HomeContent = ({ displayName, navigation }) => {
       case "I'm Safe":
       case "SAFE":
         return "#4CAF50";
+      case "Needs Help":
+        return "#F44336"; // Red for Needs Help
       case "Not Yet Responded":
         return "#FF9800";
       case "Unknown":
@@ -98,108 +72,112 @@ const HomeContent = ({ displayName, navigation }) => {
     }
   };
 
-  // ✅ Weather icon mapping
-  const getWeatherIcon = (condition) => {
-    switch (condition) {
-      case "Rain":
-        return { icon: "umbrella", color: "#2196F3" };
-      case "Thunderstorm":
-        return { icon: "flash-on", color: "red" };
-      case "Drizzle":
-        return { icon: "grain", color: "#4FC3F7" };
-      case "Clear":
-        return { icon: "wb-sunny", color: "orange" };
-      case "Clouds":
-        return { icon: "cloud", color: "gray" };
-      case "Snow":
-        return { icon: "ac-unit", color: "#00BCD4" };
-      case "Mist":
-      case "Fog":
-      case "Haze":
-        return { icon: "blur-on", color: "#9E9E9E" };
-      default:
-        return { icon: "warning", color: "red" };
-    }
-  };
 
-  const { icon, color } = getWeatherIcon(weather);
 
   return (
     <>
       {/* Greeting */}
       <Text style={styles.greeting}>Hi, {displayName}!</Text>
 
-      <View style={styles.sectionRow}>
-        <View style={styles.column}>
+      {/* Compact Disaster Alerts */}
+      <CompactDisasterAlerts 
+        userLocation={location} 
+        navigation={navigation} 
+        maxAlerts={1} 
+      />
 
+      <View style={styles.sectionRow}>
+        {/* Left Column - Top Row */}
+        <View style={styles.column}>
           {/* Evacuation Centers - HIGH PRIORITY */}
-          <View style={[styles.sectionCard, { flex: 1, marginBottom: 10 }]}>
+          <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Evacuation Centers</Text>
             </View>
-            <View style={[styles.sectionContent, { flex: 1, justifyContent: 'center' }]}>
-              <Image source={EvacIcon} style={styles.evacIcon} resizeMode="contain" />
-              <View style={styles.sectionFooter}>
-                <Text style={styles.nearestCenterText}>Nearest Center</Text>
+            
+            <View style={styles.sectionContent}>
+              <Ionicons name="shield-checkmark" size={38} color="#FF6F00" />
+              
+              <View style={styles.evacuationInfoRow}>
+                <Ionicons name="location" size={14} color="#FF6F00" />
+                <Text style={styles.evacuationInfoText}>
+                  {location?.latitude && location?.longitude 
+                    ? "Showing nearest centers" 
+                    : "Loading locations..."}
+                </Text>
+              </View>
+              
+              <View style={styles.evacuationButtonsContainer}>
                 <TouchableOpacity
-                  style={styles.seeAllButton}
-                  onPress={() => navigation.navigate("EvacuationCenters")}
+                  style={styles.evacuationButtonSecondary}
+                  onPress={() => safeNavigate("EvacuationCenters")}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.seeAllGreen}>Route</Text>
+                  <Ionicons name="map" size={12} color="#FF6F00" />
+                  <Text style={styles.evacuationButtonSecondaryText}>VIEW ALL</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.evacuationButtonPrimary}
+                  onPress={() => {
+                    console.log('ROUTE NEAREST button pressed - navigating with autoRoute: true');
+                    // Navigate to EvacuationCenters and trigger nearest route
+                    safeNavigate("EvacuationCenters", { autoRoute: true });
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="navigate" size={12} color="#FFFFFF" />
+                  <Text style={styles.evacuationButtonPrimaryText}>NEAREST</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          {/* Real-Time Alerts */}
-          <View style={[styles.sectionCard, { flex: 1 }]}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Real-Time Alerts</Text>
+          {/* Go-Bag Checklist - Bottom left */}
+          <TouchableOpacity 
+            style={[styles.card, { backgroundColor: '#FFF3E0' }]}
+            onPress={() => safeNavigate("Go_Bag")}
+          >
+            <View style={styles.itemRow}>
+              <Ionicons name="checkbox" size={30} color="#FF9800" />
+              <Text style={[styles.itemText, { fontWeight: '600' }]}>Go-Bag Checklist</Text>
             </View>
-            <View style={[styles.sectionContent, { flex: 1, justifyContent: 'center' }]}>
-              {locationError ? (
-                <>
-                  <MaterialIcons name="location-off" size={30} color="red" />
-                  <Text style={styles.itemTextCentered}>Location Error</Text>
-                </>
-              ) : (weatherLoading || locationLoading) ? (
-                <>
-                  <MaterialIcons name="hourglass-empty" size={30} color="gray" />
-                  <Text style={styles.itemTextCentered}>Loading...</Text>
-                </>
-              ) : weather && city ? (
-                <>
-                  <MaterialIcons name={icon} size={30} color={color} />
-                  <Text style={styles.itemTextCentered}>
-                    {weather} {"\n"} {city}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <MaterialIcons name="cloud-off" size={30} color="gray" />
-                  <Text style={styles.itemTextCentered}>Weather Unavailable</Text>
-                </>
-              )}
-            </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Right Column */}
         <View style={styles.column}>
-          <TouchableOpacity
-            style={[styles.card, { backgroundColor: '#FFEBEE' }]}
-            onPress={() => navigation.navigate("BroadcastFeed")}
-          >
-            <View style={styles.itemRow}>
-              <Ionicons name="megaphone" size={30} color="#FF5722" />
-              <Text style={[styles.itemText, { fontWeight: 'bold', color: '#FF5722' }]}>Emergency Broadcast</Text>
+          {/* Emergency Broadcast - Top right */}
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Emergency Broadcast</Text>
             </View>
-          </TouchableOpacity>
+            
+            <View style={styles.sectionContent}>
+              <Ionicons name="megaphone" size={38} color="#FF5722" />
+              
+              <View style={styles.evacuationInfoRow}>
+                <Ionicons name="radio" size={14} color="#FF5722" />
+                <Text style={styles.evacuationInfoText}>
+                  Stay updated with alerts
+                </Text>
+              </View>
+              
+              <TouchableOpacity
+                style={[styles.evacuationButtonPrimary, { backgroundColor: '#FF5722' }]}
+                onPress={() => safeNavigate("BroadcastFeed")}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
+                <Text style={styles.evacuationButtonPrimaryText}>VIEW UPDATES</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          {/* Family Check-In - ESSENTIAL */}
+          {/* Family Check-In - Bottom right */}
           <TouchableOpacity
             style={[styles.card, { backgroundColor: '#E8F5E8' }]}
-            onPress={() => navigation.navigate("FamilyCheckIn", { displayName })}
+            onPress={() => safeNavigate("FamilyCheckIn", { displayName })}
           >
             <View style={styles.itemRow}>
               <Ionicons name="people" size={30} color={getStatusColor()} />
@@ -211,28 +189,6 @@ const HomeContent = ({ displayName, navigation }) => {
               </View>
             </View>
           </TouchableOpacity>
-
-          {/* Go-Bag Checklist - IMPORTANT */}
-          <TouchableOpacity 
-            style={[styles.card, { backgroundColor: '#FFF3E0' }]}
-            onPress={() => navigation.navigate("Go_Bag")}
-          >
-            <View style={styles.itemRow}>
-              <Ionicons name="checkbox" size={30} color="#FF9800" />
-              <Text style={[styles.itemText, { fontWeight: '600' }]}>Go-Bag Checklist</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Add A Family - UTILITY */}
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate("AddFamily")}
-          >
-            <View style={styles.itemRow}>
-              <Ionicons name="person-add" size={30} color="#2196F3" />
-              <Text style={styles.itemText}>Add a Family</Text>
-            </View>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -240,12 +196,21 @@ const HomeContent = ({ displayName, navigation }) => {
       <View style={styles.familyCard}>
         <View style={styles.familyHeader}>
           <Text style={styles.familyStatusTitle}>Family Status</Text>
-          <TouchableOpacity 
-            style={styles.seeAllButton}
-            onPress={() => navigation.navigate('FamilyDetails')}
-          >
-            <Text style={styles.seeAllGreen}>See All</Text>
-          </TouchableOpacity>
+          <View style={styles.familyHeaderButtons}>
+            <TouchableOpacity 
+              style={styles.addFamilyButton}
+              onPress={() => safeNavigate("AddFamily")}
+            >
+              <Ionicons name="person-add" size={16} color="#2196F3" />
+              <Text style={styles.addFamilyButtonText}>Add Family</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.seeAllButton}
+              onPress={() => safeNavigate('FamilyDetails')}
+            >
+              <Text style={styles.seeAllGreen}>See All</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.familyListContainer}>

@@ -26,6 +26,8 @@ export default function FamilyDetails({ navigation }) {
       case 'I\'m Safe':
       case 'Safe':
         return '#4CAF50'; // Green
+      case 'Needs Help':
+        return '#F44336'; // Red for Needs Help
       case 'Not Yet Responded':
         return '#FF9800'; // Orange
       case 'Evacuated':
@@ -78,6 +80,57 @@ export default function FamilyDetails({ navigation }) {
         }
       })
       .catch((err) => console.error('Error opening SMS:', err));
+  };
+
+  const openInGoogleMaps = (latitude, longitude, address) => {
+    if (!latitude || !longitude) {
+      Alert.alert('No Location', 'Location coordinates are not available.');
+      return;
+    }
+
+    // Google Maps URL for coordinates
+    const coords = `${latitude},${longitude}`;
+    let url;
+
+    if (Platform.OS === 'ios') {
+      // iOS - Try Google Maps app first, fallback to Apple Maps
+      url = `comgooglemaps://?q=${coords}&center=${coords}&zoom=16`;
+      
+      Linking.canOpenURL(url)
+        .then((supported) => {
+          if (supported) {
+            Linking.openURL(url);
+          } else {
+            // Fallback to Apple Maps
+            const appleUrl = `http://maps.apple.com/?q=${coords}&ll=${coords}&z=16`;
+            Linking.openURL(appleUrl);
+          }
+        })
+        .catch(() => {
+          // Last fallback to web Google Maps
+          const webUrl = `https://www.google.com/maps?q=${coords}`;
+          Linking.openURL(webUrl);
+        });
+    } else {
+      // Android - Try Google Maps app first, fallback to web
+      url = `geo:${coords}?q=${coords}(${address || 'Location'})`;
+      
+      Linking.canOpenURL(url)
+        .then((supported) => {
+          if (supported) {
+            Linking.openURL(url);
+          } else {
+            // Fallback to web Google Maps
+            const webUrl = `https://www.google.com/maps?q=${coords}`;
+            Linking.openURL(webUrl);
+          }
+        })
+        .catch(() => {
+          // Last fallback to web Google Maps
+          const webUrl = `https://www.google.com/maps?q=${coords}`;
+          Linking.openURL(webUrl);
+        });
+    }
   };
 
   const formatLastSeen = (timestamp) => {
@@ -220,8 +273,22 @@ export default function FamilyDetails({ navigation }) {
                 {/* Location Information */}
                 <View style={styles.locationSection}>
                   <View style={styles.locationHeader}>
-                    <Ionicons name="location" size={16} color="#666" />
-                    <Text style={styles.locationTitle}>Last Known Location</Text>
+                    <View style={styles.locationTitleRow}>
+                      <Ionicons name="location" size={16} color="#666" />
+                      <Text style={styles.locationTitle}>Last Known Location</Text>
+                    </View>
+                    {(member.emergencyLocation || member.locationData || member.lastLocation) && (
+                      <TouchableOpacity
+                        style={styles.mapsButton}
+                        onPress={() => {
+                          const location = member.emergencyLocation || member.locationData || member.lastLocation;
+                          openInGoogleMaps(location.latitude, location.longitude, location.address);
+                        }}
+                      >
+                        <Ionicons name="map" size={16} color="#2196F3" />
+                        <Text style={styles.mapsButtonText}>View on Maps</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                   
                   {(member.emergencyLocation || member.locationData || member.lastLocation) ? (

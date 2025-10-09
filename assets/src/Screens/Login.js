@@ -206,8 +206,14 @@ export default function Login({ navigation }) {
           <TouchableOpacity 
             onPress={async () => {
               try {
+                // Require password for email verification
+                if (!password) {
+                  Alert.alert("Password Required", "Please enter your password to resend verification email.");
+                  return;
+                }
+                
                 // Temporarily sign in to send verification email
-                const userCredential = await signInWithEmailAndPassword(auth, email, password || "dummy");
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 
                 if (userCredential.user.emailVerified) {
                   Alert.alert("Already Verified", "Your email is already verified. You can log in normally.");

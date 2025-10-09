@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, getDocs, doc as firestoreDoc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useUser } from './UserContext';
+import AutoStatusService from './AutoStatusService';
 
 const FamilyContext = createContext();
 
@@ -152,6 +153,13 @@ export const FamilyProvider = ({ children }) => {
                 isAdmin: currentUserMember?.isAdmin || false,
                 userStatus: currentUserMember?.status || 'Not Yet Responded'
               });
+
+              // Initialize auto status monitoring for this family
+              const familyCode = familyDocData.code || familyDocData.familyCode || '';
+              if (familyCode) {
+                AutoStatusService.initializeAutoStatusForFamily(familyCode);
+                console.log('FamilyContext - Auto status service initialized for family:', familyCode);
+              }
             }
           });
 
@@ -178,6 +186,8 @@ export const FamilyProvider = ({ children }) => {
       if (unsubscribeFamily) {
         unsubscribeFamily();
       }
+      // Cleanup auto status service
+      AutoStatusService.cleanup();
     };
   }, [userId]);
 
@@ -222,6 +232,10 @@ export const FamilyProvider = ({ children }) => {
         });
         
         await updateDoc(familyDocRef, { members: updatedMembers });
+        
+        // Reset auto status timers when user manually updates status
+        AutoStatusService.resetTimerForUser(userId, familyData.familyCode);
+        
         console.log('FamilyContext - User status updated successfully');
         return true;
       } catch (error) {

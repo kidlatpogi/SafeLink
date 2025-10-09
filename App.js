@@ -10,6 +10,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 // Context Providers
 import { UserProvider } from "./assets/src/Components/UserContext";
 import { FamilyProvider } from "./assets/src/Components/FamilyContext";
+import { NotificationProvider } from "./assets/src/Components/NotificationContext";
 
 // Screens
 import Get_Started from "./assets/src/Screens/Get_Started";
@@ -32,6 +33,7 @@ import OfficialVerification from "./assets/src/Screens/OfficialVerification";
 import AdminPanel from "./assets/src/Screens/AdminPanel";
 import BroadcastAnalytics from "./assets/src/Screens/BroadcastAnalytics";
 import RealTimeAlerts from "./assets/src/Screens/RealTimeAlerts";
+import NotificationSettings from "./assets/src/Screens/NotificationSettings";
 
 const Stack = createStackNavigator();
 
@@ -126,33 +128,36 @@ export default function App() {
   return (
     <UserProvider>
       <FamilyProvider>
-        <NavigationContainer>
-          <Stack.Navigator
-            initialRouteName={initialRoute}
-            screenOptions={{ headerShown: false }}
-          >
-            <Stack.Screen name="GetStarted" component={Get_Started} />
-            <Stack.Screen name="CreateAccount" component={Create_Account} />
-            <Stack.Screen name="ForgotPassword" component={Forgot_Password} />
-            <Stack.Screen name="Home" component={Home} />
-            <Stack.Screen name="Login" component={Login} />
-            <Stack.Screen name="TermsPrivacy" component={TermsPrivacy} />
-            <Stack.Screen name="User_Form" component={User_Form} />
-            <Stack.Screen name="LocationSettings" component={LocationSettings} />
-            <Stack.Screen name="BroadcastSettings" component={BroadcastSettingsScreen} />
-            <Stack.Screen name="EmergencyBroadcast" component={EmergencyBroadcast} />
-            <Stack.Screen name="BroadcastFeed" component={BroadcastFeed} />
-            <Stack.Screen name="EvacuationCenters" component={EvacuationCenters} />
-            <Stack.Screen name="FamilyCheckIn" component={FamilyCheckIn} />
-            <Stack.Screen name="AddFamily" component={AddFamily} />
-            <Stack.Screen name="FamilyDetails" component={FamilyDetails} />
-            <Stack.Screen name="Go_Bag" component={Go_Bag} />
-            <Stack.Screen name="OfficialVerification" component={OfficialVerification} />
-            <Stack.Screen name="AdminPanel" component={AdminPanel} />
-            <Stack.Screen name="BroadcastAnalytics" component={BroadcastAnalytics} />
-            <Stack.Screen name="RealTimeAlerts" component={RealTimeAlerts} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <NotificationProvider>
+          <NavigationContainer>
+            <Stack.Navigator
+              initialRouteName={initialRoute}
+              screenOptions={{ headerShown: false }}
+            >
+              <Stack.Screen name="GetStarted" component={Get_Started} />
+              <Stack.Screen name="CreateAccount" component={Create_Account} />
+              <Stack.Screen name="ForgotPassword" component={Forgot_Password} />
+              <Stack.Screen name="Home" component={Home} />
+              <Stack.Screen name="Login" component={Login} />
+              <Stack.Screen name="TermsPrivacy" component={TermsPrivacy} />
+              <Stack.Screen name="User_Form" component={User_Form} />
+              <Stack.Screen name="LocationSettings" component={LocationSettings} />
+              <Stack.Screen name="BroadcastSettings" component={BroadcastSettingsScreen} />
+              <Stack.Screen name="EmergencyBroadcast" component={EmergencyBroadcast} />
+              <Stack.Screen name="BroadcastFeed" component={BroadcastFeed} />
+              <Stack.Screen name="EvacuationCenters" component={EvacuationCenters} />
+              <Stack.Screen name="FamilyCheckIn" component={FamilyCheckIn} />
+              <Stack.Screen name="AddFamily" component={AddFamily} />
+              <Stack.Screen name="FamilyDetails" component={FamilyDetails} />
+              <Stack.Screen name="Go_Bag" component={Go_Bag} />
+              <Stack.Screen name="OfficialVerification" component={OfficialVerification} />
+              <Stack.Screen name="AdminPanel" component={AdminPanel} />
+              <Stack.Screen name="BroadcastAnalytics" component={BroadcastAnalytics} />
+              <Stack.Screen name="RealTimeAlerts" component={RealTimeAlerts} />
+              <Stack.Screen name="NotificationSettings" component={NotificationSettings} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </NotificationProvider>
       </FamilyProvider>
     </UserProvider>
   );

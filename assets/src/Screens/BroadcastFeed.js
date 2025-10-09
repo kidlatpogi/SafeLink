@@ -7,8 +7,7 @@ import {
   Image, 
   ActivityIndicator,
   Alert,
-  RefreshControl,
-  SafeAreaView
+  RefreshControl
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from '@react-navigation/native';
@@ -459,7 +458,7 @@ export default function BroadcastFeed({ navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         {/* App Header */}
         <AppHeader 
           title="Broadcast Feed"
@@ -470,12 +469,12 @@ export default function BroadcastFeed({ navigation }) {
           <ActivityIndicator size="large" color="#FF6F00" />
           <Text style={styles.loadingText}>Loading emergency broadcasts...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* App Header */}
       <AppHeader 
         title="Broadcast Feed"
@@ -527,6 +526,6 @@ export default function BroadcastFeed({ navigation }) {
         }
         showsVerticalScrollIndicator={false}
       />
-    </SafeAreaView>
+    </View>
   );
 }

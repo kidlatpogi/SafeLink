@@ -23,6 +23,15 @@ const HamburgerMenu = ({
   const { isVerifiedOfficial, officialRole, verificationStatus } = useUser();
   const screenHeight = Dimensions.get("window").height;
 
+  // Safe navigation function
+  const safeNavigate = (screenName, params = {}) => {
+    if (navigation && navigation.navigate) {
+      navigation.navigate(screenName, params);
+    } else {
+      console.error('HamburgerMenu: Navigation is not available');
+    }
+  };
+
   const hideMenu = () => {
     Animated.parallel([
       Animated.timing(slideAnim, {
@@ -118,7 +127,7 @@ const HamburgerMenu = ({
               style={styles.menuItem}
               onPress={() => {
                 hideMenu();
-                navigation.navigate("User_Form");
+                safeNavigate("User_Form");
               }}
             >
               <Ionicons name="person-circle-outline" size={24} color="#fff" />
@@ -132,7 +141,7 @@ const HamburgerMenu = ({
               style={styles.menuItem}
               onPress={() => {
                 hideMenu();
-                navigation.navigate("LocationSettings");
+                safeNavigate("LocationSettings");
               }}
             >
               <Ionicons name="location-outline" size={24} color="#fff" />
@@ -144,11 +153,23 @@ const HamburgerMenu = ({
               style={styles.menuItem}
               onPress={() => {
                 hideMenu();
-                navigation.navigate("BroadcastSettings");
+                safeNavigate("BroadcastSettings");
               }}
             >
               <Ionicons name="radio-outline" size={24} color="#fff" />
               <Text style={styles.menuText}>Broadcast Settings</Text>
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                hideMenu();
+                safeNavigate("NotificationSettings");
+              }}
+            >
+              <Ionicons name="notifications-outline" size={24} color="#fff" />
+              <Text style={styles.menuText}>Notification Settings</Text>
               <Ionicons name="chevron-forward" size={20} color="#fff" />
             </TouchableOpacity>
 
@@ -160,7 +181,7 @@ const HamburgerMenu = ({
                 style={styles.menuItem}
                 onPress={() => {
                   hideMenu();
-                  navigation.navigate("OfficialVerification");
+                  safeNavigate("OfficialVerification");
                 }}
               >
                 <Ionicons name="shield-checkmark-outline" size={24} color="#fff" />
@@ -183,7 +204,7 @@ const HamburgerMenu = ({
                   style={styles.menuItem}
                   onPress={() => {
                     hideMenu();
-                    navigation.navigate("EmergencyBroadcast");
+                    safeNavigate("EmergencyBroadcast");
                   }}
                 >
                   <Ionicons name="megaphone-outline" size={24} color="#4CAF50" />
@@ -197,7 +218,7 @@ const HamburgerMenu = ({
                     style={styles.menuItem}
                     onPress={() => {
                       hideMenu();
-                      navigation.navigate("AdminPanel");
+                      safeNavigate("AdminPanel");
                     }}
                   >
                     <Ionicons name="people-outline" size={24} color="#0891b2" />

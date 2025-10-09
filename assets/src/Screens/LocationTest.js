@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import LocationService from '../Components/LocationService';
+import AppHeader from '../Components/AppHeader';
 import useLocation from '../Components/useLocation';
 
 const LocationTest = ({ navigation }) => {
@@ -196,15 +197,7 @@ const LocationTest = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Location Test</Text>
-      </View>
+      <AppHeader title="Location Test" navigation={navigation} />
 
       <ScrollView style={styles.content}>
         <View style={styles.infoCard}>

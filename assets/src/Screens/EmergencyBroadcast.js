@@ -7,7 +7,6 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Modal,
@@ -15,10 +14,11 @@ import {
 } from "react-native";
 import { Ionicons, MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import { db, auth } from "../firebaseConfig";
-import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion, getDocs, query, where } from "firebase/firestore";
 import * as Location from "expo-location";
 import useLocation from "../Components/useLocation";
 import { useUser } from "../Components/UserContext";
+import { useNotifications } from "../Components/NotificationContext";
 import AppHeader from "../Components/AppHeader";
 import styles from "../Styles/EmergencyBroadcast.styles";
 
@@ -32,6 +32,7 @@ export default function EmergencyBroadcast({ navigation }) {
     officialRole, 
     barangayAssignment 
   } = useUser();
+  const { notificationService } = useNotifications();
   
   // Use optimized location with emergency mode for high accuracy
   const { 
@@ -235,6 +236,57 @@ export default function EmergencyBroadcast({ navigation }) {
 
       console.log("Emergency broadcast posted successfully");
 
+      // Send push notifications to users in the area
+      if (notificationService && userLocation) {
+        try {
+          // Get all users with push tokens
+          const usersQuery = query(
+            collection(db, "users"),
+            where("pushToken", "!=", null)
+          );
+          const usersSnapshot = await getDocs(usersQuery);
+          
+          let notificationsSent = 0;
+          const promises = [];
+          
+          usersSnapshot.forEach((userDoc) => {
+            const userData = userDoc.data();
+            if (userData.pushToken && userData.location) {
+              // Check if user is within broadcast radius (50km)
+              const distance = notificationService.calculateDistance(
+                userLocation.latitude,
+                userLocation.longitude,
+                userData.location.latitude,
+                userData.location.longitude
+              );
+              
+              if (distance <= 50) { // 50km radius for emergency broadcasts
+                const notification = notificationService.sendNotification(
+                  userData.pushToken,
+                  `🚨 Emergency Alert: ${alertType}`,
+                  `${broadcasterName}: ${message.trim()}`,
+                  {
+                    type: 'emergency_broadcast',
+                    broadcastId: docRef.id,
+                    alertType: alertType,
+                    location: location,
+                    barangay: barangay,
+                    distance: Math.round(distance)
+                  }
+                );
+                promises.push(notification);
+                notificationsSent++;
+              }
+            }
+          });
+          
+          await Promise.all(promises);
+          console.log(`Emergency broadcast notifications sent to ${notificationsSent} users`);
+        } catch (notificationError) {
+          console.error('Failed to send emergency broadcast notifications:', notificationError);
+        }
+      }
+
       Alert.alert(
         "✅ Official Broadcast Sent", 
         `Your emergency message has been sent as ${officialRole?.replace('_', ' ')} of ${typeof barangayAssignment === 'object' 
@@ -258,7 +310,7 @@ export default function EmergencyBroadcast({ navigation }) {
   const currentAlert = getCurrentAlertType();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* App Header */}
       <AppHeader 
         title="Emergency Broadcast"
@@ -477,6 +529,6 @@ export default function EmergencyBroadcast({ navigation }) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }

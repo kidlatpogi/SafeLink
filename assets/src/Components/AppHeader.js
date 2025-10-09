@@ -14,17 +14,18 @@ import { Ionicons } from '@expo/vector-icons';
 import HamburgerMenu from './HamburgerMenu';
 
 const AppHeader = ({ 
-  title, 
+  title = "SafeLink", 
   navigation, 
-  showBackButton = true,
+  showBack = true,
   showHamburger = true,
+  showLogo = false,
   icon = null,
   backgroundColor = '#FF6F00',
   statusBarStyle = 'light-content'
 }) => {
-  // Calculate consistent header height for different devices
+  // Calculate consistent but reasonable header height
   const statusBarHeight = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 24;
-  const headerPadding = statusBarHeight + 15;
+  const headerPaddingTop = statusBarHeight + 10; // Reduced padding for smaller header
   
   // Hamburger menu state
   const slideAnim = useRef(new Animated.Value(-280)).current;
@@ -51,28 +52,43 @@ const AppHeader = ({
     <>
       <StatusBar backgroundColor={backgroundColor} barStyle={statusBarStyle} />
       
-      {/* Main Header */}
-      <View style={[styles.header, { backgroundColor, paddingTop: headerPadding }]}>
+      {/* Single Consolidated Header */}
+      <View style={[styles.header, { backgroundColor, paddingTop: headerPaddingTop }]}>
         <View style={styles.headerContent}>
           {/* Back Button */}
-          {showBackButton ? (
+          {showBack ? (
             <TouchableOpacity 
               style={styles.headerButton}
-              onPress={() => navigation.goBack()}
+              onPress={() => {
+                if (navigation && navigation.goBack) {
+                  navigation.goBack();
+                } else {
+                  console.warn('AppHeader: navigation prop is missing or invalid');
+                }
+              }}
             >
-              <Ionicons name="arrow-back" size={32} color="white" />
+              <Ionicons name="arrow-back" size={26} color="white" />
             </TouchableOpacity>
           ) : (
             <View style={styles.headerButton} />
           )}
           
-          {/* Logo and Title */}
-          <View style={styles.logoWrapper}>
-            <Image source={require('../Images/SafeLink_LOGO.png')} style={styles.logoImage} />
-            <Text style={styles.logo}>
-              <Text style={{ color: "white", fontWeight: "bold", fontSize: 18 }}>Safe</Text>
-              <Text style={{ color: "#E82222", fontWeight: "bold", fontSize: 18 }}>Link</Text>
-            </Text>
+          {/* Title with Optional Icon or Logo */}
+          <View style={styles.titleWrapper}>
+            {showLogo ? (
+              <>
+                <Image source={require('../Images/SafeLink_LOGO.png')} style={styles.logoImage} />
+                <Text style={styles.logoText}>
+                  <Text style={{ color: "white", fontWeight: "bold" }}>Safe</Text>
+                  <Text style={{ color: "#E82222", fontWeight: "bold" }}>Link</Text>
+                </Text>
+              </>
+            ) : (
+              <>
+                {icon && <Ionicons name={icon} size={22} color="white" style={styles.titleIcon} />}
+                <Text style={styles.headerTitle}>{title}</Text>
+              </>
+            )}
           </View>
           
           {/* Hamburger Menu */}
@@ -81,21 +97,13 @@ const AppHeader = ({
               style={styles.headerButton}
               onPress={showMenu}
             >
-              <Ionicons name="menu" size={32} color="white" />
+              <Ionicons name="menu" size={26} color="white" />
             </TouchableOpacity>
           ) : (
             <View style={styles.headerButton} />
           )}
         </View>
       </View>
-
-      {/* Title Row with Icon */}
-      {title && (
-        <View style={styles.titleRow}>
-          {icon && <Ionicons name={icon} size={26} color="#FF6F00" />}
-          <Text style={styles.title}>{title}</Text>
-        </View>
-      )}
 
       {/* Hamburger Menu */}
       {showHamburger && (
@@ -113,7 +121,7 @@ const AppHeader = ({
 
 const styles = StyleSheet.create({
   header: {
-    paddingBottom: 20,
+    paddingBottom: 15,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -125,47 +133,40 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    minHeight: 60, // Ensure consistent minimum height
+    paddingVertical: 8,
+    minHeight: 50, // Reduced minimum height for smaller header
   },
   headerButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 22,
+    borderRadius: 20,
   },
-  logoWrapper: {
+  titleWrapper: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     flex: 1,
   },
-  logoImage: {
-    width: 35,
-    height: 35,
-    marginRight: 10,
+  titleIcon: {
+    marginRight: 8,
   },
-  logo: {
-    fontWeight: "bold",
+  headerTitle: {
+    color: 'white',
     fontSize: 20,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    minHeight: 56,
-  },
-  title: {
-    fontSize: 22,
     fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 12,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    textAlign: 'center',
+  },
+  logoImage: {
+    width: 28,
+    height: 28,
+    marginRight: 8,
+  },
+  logoText: {
+    fontSize: 18,
+    fontWeight: 'bold',
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
 });

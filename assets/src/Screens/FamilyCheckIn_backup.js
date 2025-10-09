@@ -4,7 +4,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { db, auth } from "../firebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import { useFamily } from '../Components/FamilyContext';
-import { useNotifications } from '../Components/NotificationContext';
 import styles from "../Styles/FamilyCheckIn.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
 import HamburgerMenu from "../Components/HamburgerMenu";
@@ -15,9 +14,20 @@ export default function FamilyCheckIn({ navigation, route }) {
   const userEmail = auth.currentUser?.email;
   
   // Use FamilyContext for synchronized status management
-  const { userStatus, updateUserStatus, familyCode, familyMembers } = useFamily();
-  const { notificationService } = useNotifications();
+  const { userStatus, updateUserStatus, familyCode } = useFamily();
   const [status, setStatus] = useState(userStatus || "Not Yet Responded");
+
+  // Hamburger menu state
+  const [menuVisible, setMenuVisible] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-280)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+export default function FamilyCheckIn({ navigation, route }) {
+  const { displayName } = route.params || { displayName: "User" };
+  const userId = auth.currentUser?.uid;
+  const userEmail = auth.currentUser?.email;
+  const [status, setStatus] = useState("Not Yet Responded");
+  const [familyId, setFamilyId] = useState(null);
 
   // Hamburger menu state
   const [menuVisible, setMenuVisible] = useState(false);
@@ -43,23 +53,12 @@ export default function FamilyCheckIn({ navigation, route }) {
 
   // Sync status with FamilyContext
   useEffect(() => {
-    console.log('FamilyCheckIn - Status sync:', { userStatus, familyCode });
     setStatus(userStatus || "Not Yet Responded");
   }, [userStatus]);
 
   // Update status using FamilyContext for synchronized updates
   const updateStatus = async (newStatus) => {
-    if (!userId) {
-      Alert.alert("Error", "User not authenticated. Please log in again.");
-      return;
-    }
-
-    if (!familyCode) {
-      Alert.alert("Info", "You need to join or create a family first to update your status.");
-      return;
-    }
-
-    console.log('FamilyCheckIn - Updating status:', { newStatus, userId, familyCode });
+    if (!userId) return;
 
     try {
       // Use FamilyContext's updateUserStatus for synchronized updates
@@ -74,42 +73,12 @@ export default function FamilyCheckIn({ navigation, route }) {
         });
 
         setStatus(newStatus);
-        
-        // Send status update notification to family members
-        if (notificationService && familyMembers?.length > 0) {
-          try {
-            // Notify family members about the status update
-            const statusMessage = `${displayName} updated their status to "${newStatus}"`;
-            
-            for (const member of familyMembers) {
-              if (member.userId !== userId && member.pushToken) {
-                await notificationService.sendNotification(
-                  member.pushToken,
-                  'Family Status Update',
-                  statusMessage,
-                  {
-                    type: 'family_status',
-                    userId: userId,
-                    status: newStatus,
-                    memberName: displayName
-                  }
-                );
-              }
-            }
-            console.log('FamilyCheckIn - Family notification sent for status update');
-          } catch (notificationError) {
-            console.error('FamilyCheckIn - Failed to send family notifications:', notificationError);
-          }
-        }
-        
         Alert.alert("Status Updated", `Your status is now "${newStatus}"`);
-        console.log('FamilyCheckIn - Status updated successfully:', newStatus);
       } else {
         Alert.alert("Error", "Failed to update status. Please try again.");
-        console.error('FamilyCheckIn - Status update failed');
       }
     } catch (err) {
-      console.error("FamilyCheckIn - Error updating status:", err);
+      console.error("Error updating status:", err);
       Alert.alert("Error", "Failed to update status. Please try again.");
     }
   };
@@ -118,16 +87,14 @@ export default function FamilyCheckIn({ navigation, route }) {
     switch (status?.toLowerCase()) {
       case "i'm safe":
         return "#4CAF50";
-      case "needs help":
-        return "#F44336";
-      case "evacuated":
-        return "#FF9800";
       case "not yet responded":
-        return "#9E9E9E";
+        return "#FF9800";
       case "unknown":
-        return "#757575";
-      default:
         return "#9E9E9E";
+      case "evacuated":
+        return "#F44336";
+      default:
+        return "#FF9800";
     }
   };
 
@@ -155,16 +122,14 @@ export default function FamilyCheckIn({ navigation, route }) {
     switch (buttonStatus.toLowerCase()) {
       case "i'm safe":
         return "#4CAF50";
-      case "needs help":
-        return "#F44336";
-      case "evacuated":
-        return "#FF9800";
       case "not yet responded":
-        return "#9E9E9E";
+        return "#FF9800";
       case "unknown":
-        return "#757575";
-      default:
         return "#9E9E9E";
+      case "evacuated":
+        return "#F44336";
+      default:
+        return "#FF9800";
     }
   };
 
@@ -191,67 +156,57 @@ export default function FamilyCheckIn({ navigation, route }) {
         </View>
       </View>
 
-      {/* Status Display */}
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusLabel}>Your Current Status:</Text>
-        <View style={[styles.statusIndicator, { backgroundColor: getStatusColor() }]}>
-          <Text style={styles.statusText}>{status}</Text>
+      {/* Title Row */}
+      <View style={styles.titleRow}>
+        <Ionicons name="people-circle" size={24} color="#FF6F00" />
+        <Text style={styles.title}>Family Check-In</Text>
+      </View>
+
+      {/* Profile Section */}
+      <View style={styles.profileSection}>
+        {/* Use a more visually appealing icon from Ionicons */}
+        <View style={[styles.profilePic, { borderColor: getStatusColor(), alignItems: "center", justifyContent: "center", backgroundColor: "#f5f5f5" }]}>
+          <Ionicons name="person-circle-outline" size={72} color={getStatusColor()} />
+        </View>
+        <Text style={styles.memberName}>{displayName}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
+          <Text style={styles.statusText}>Current Status: {status}</Text>
         </View>
       </View>
 
-      {/* Status Options */}
-      <View style={styles.optionsContainer}>
-        <Text style={styles.sectionTitle}>Update Your Status:</Text>
-
-        {/* I'm Safe */}
+      {/* Buttons */}
+      <View style={styles.buttonGroup}>
         <TouchableOpacity
-          style={[styles.statusButton, getButtonStyle("I'm Safe")]}
+          style={[styles.optionButton, getButtonStyle("I'm Safe")]}
           onPress={() => updateStatus("I'm Safe")}
         >
-          <View style={styles.buttonContent}>
-            <Ionicons name="checkmark-circle" size={24} color={getButtonTextColor("I'm Safe")} />
-            <Text style={[styles.buttonText, { color: getButtonTextColor("I'm Safe") }]}>
-              I'm Safe
-            </Text>
-          </View>
+          <Ionicons name="checkmark" size={20} color={getButtonTextColor("I'm Safe")} />
+          <Text style={[styles.optionText, { color: getButtonTextColor("I'm Safe") }]}>I'm Safe</Text>
         </TouchableOpacity>
 
-        {/* Evacuated */}
         <TouchableOpacity
-          style={[styles.statusButton, getButtonStyle("Evacuated")]}
+          style={[styles.optionButton, getButtonStyle("Not Yet Responded")]}
+          onPress={() => updateStatus("Not Yet Responded")}
+        >
+          <Ionicons name="hourglass" size={20} color={getButtonTextColor("Not Yet Responded")} />
+          <Text style={[styles.optionText, { color: getButtonTextColor("Not Yet Responded") }]}>Not Yet Responded</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.optionButton, getButtonStyle("Unknown")]}
+          onPress={() => updateStatus("Unknown")}
+        >
+          <Ionicons name="help" size={20} color={getButtonTextColor("Unknown")} />
+          <Text style={[styles.optionText, { color: getButtonTextColor("Unknown") }]}>Unknown</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.optionButton, getButtonStyle("Evacuated")]}
           onPress={() => updateStatus("Evacuated")}
         >
-          <View style={styles.buttonContent}>
-            <Ionicons name="warning" size={24} color={getButtonTextColor("Evacuated")} />
-            <Text style={[styles.buttonText, { color: getButtonTextColor("Evacuated") }]}>
-              Evacuated
-            </Text>
-          </View>
+          <Ionicons name="flag" size={20} color={getButtonTextColor("Evacuated")} />
+          <Text style={[styles.optionText, { color: getButtonTextColor("Evacuated") }]}>Evacuated</Text>
         </TouchableOpacity>
-
-        {/* Needs Help - NEW */}
-        <TouchableOpacity
-          style={[styles.statusButton, getButtonStyle("Needs Help")]}
-          onPress={() => updateStatus("Needs Help")}
-        >
-          <View style={styles.buttonContent}>
-            <Ionicons name="alert-circle" size={24} color={getButtonTextColor("Needs Help")} />
-            <Text style={[styles.buttonText, { color: getButtonTextColor("Needs Help") }]}>
-              Needs Help
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Instructions */}
-      <View style={styles.instructionsContainer}>
-        <Text style={styles.instructionsTitle}>Instructions:</Text>
-        <Text style={styles.instructionsText}>
-          • Select your current safety status{'\n'}
-          • Your family members will see your status update{'\n'}
-          • Update regularly during emergencies{'\n'}
-          • Contact authorities if you need immediate help
-        </Text>
       </View>
 
       {/* Hamburger Menu */}

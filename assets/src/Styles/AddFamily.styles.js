@@ -19,7 +19,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 30,
+    marginTop: 55,
   },
   backBtn: {
     padding: 6,
