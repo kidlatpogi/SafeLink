@@ -20,7 +20,7 @@ const HamburgerMenu = ({
   opacityAnim, 
   navigation 
 }) => {
-  const { isVerifiedOfficial, officialRole, verificationStatus } = useUser();
+  const { isVerifiedOfficial, officialRole, verificationStatus, userData } = useUser();
   const screenHeight = Dimensions.get("window").height;
 
   // Safe navigation function
@@ -212,8 +212,19 @@ const HamburgerMenu = ({
                   <Ionicons name="chevron-forward" size={20} color="#4CAF50" />
                 </TouchableOpacity>
 
-                {/* Admin Panel for Barangay Captain or Testing */}
-                {(['barangay_captain', 'emergency_coordinator'].includes(officialRole) || !isVerifiedOfficial) && (
+                {/* Admin Panel for users with admin permission */}
+                {(() => {
+                  // Check for new granular admin permission
+                  const hasAdminPermission = userData?.profile?.canAccessAdmin || userData?.profile?.permissions?.admin || false;
+                  
+                  // Legacy fallback for existing admins
+                  const isLegacyAdmin = ['barangay_captain', 'emergency_coordinator'].includes(officialRole);
+                  
+                  // Testing mode fallback
+                  const isTestingMode = !isVerifiedOfficial;
+                  
+                  return (hasAdminPermission || isLegacyAdmin || isTestingMode);
+                })() && (
                   <TouchableOpacity
                     style={styles.menuItem}
                     onPress={() => {

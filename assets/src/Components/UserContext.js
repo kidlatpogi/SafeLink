@@ -62,8 +62,10 @@ export const UserProvider = ({ children }) => {
               officialRole: data.officialRole || data.profile?.officialRole || null,
               barangayAssignment: data.barangayAssignment || data.profile?.barangayAssignment || null,
               canBroadcast: data.canBroadcast || data.profile?.canBroadcast || false,
+              canAccessAdmin: data.canAccessAdmin || data.profile?.canAccessAdmin || false,
               verificationStatus: data.verificationStatus || data.profile?.verificationStatus || 'none',
-              verificationData: data.verificationData || data.profile?.verificationData || null
+              verificationData: data.verificationData || data.profile?.verificationData || null,
+              permissions: data.permissions || data.profile?.permissions || null
             };
 
             setUserData(enrichedData);
@@ -127,7 +129,9 @@ export const UserProvider = ({ children }) => {
     officialRole: userData?.officialRole || null,
     barangayAssignment: userData?.barangayAssignment || null,
     canBroadcast: userData?.canBroadcast || false,
+    canAccessAdmin: userData?.canAccessAdmin || false,
     verificationStatus: userData?.verificationStatus || 'none',
+    permissions: userData?.permissions || null,
     notifyDataUpdate
   };
 
