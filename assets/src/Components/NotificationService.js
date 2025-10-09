@@ -7,7 +7,8 @@ import { doc, setDoc, getDoc, onSnapshot, collection, query, where } from 'fireb
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
