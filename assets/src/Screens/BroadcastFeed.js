@@ -172,11 +172,29 @@ export default function BroadcastFeed({ navigation }) {
   useEffect(() => {
     const q = query(collection(db, "broadcasts"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ 
-        id: doc.id, 
-        ...doc.data(),
-        timestamp: doc.data().createdAt?.toDate()
-      }));
+      const data = snapshot.docs.map((doc) => {
+        const docData = doc.data();
+        let timestamp;
+        
+        // Handle different createdAt formats
+        if (docData.createdAt?.toDate) {
+          // Firestore Timestamp
+          timestamp = docData.createdAt.toDate();
+        } else if (docData.createdAt) {
+          // String or ISO format
+          timestamp = new Date(docData.createdAt);
+        } else {
+          // Fallback to current time
+          timestamp = new Date();
+        }
+        
+        return {
+          id: doc.id,
+          ...docData,
+          timestamp: timestamp
+        };
+      });
+      
       setBroadcasts(data);
       setLoading(false);
     });
