@@ -44,47 +44,41 @@ class OverpassService {
       
       const query = this.buildEvacuationCentersQuery(latitude, longitude, radius);
       
-      // Create abort controller for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+      // Create fetch promise with timeout using Promise.race
+      const fetchPromise = fetch(this.overpassUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+          'Accept': 'application/json',
+        },
+        body: query,
+      });
 
-      try {
-        const response = await fetch(this.overpassUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain',
-            'Accept': 'application/json',
-          },
-          body: query,
-          signal: controller.signal,
-        });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), this.timeout)
+      );
 
-        clearTimeout(timeoutId);
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data && data.elements) {
-          const centers = this.parseOverpassResponse(data.elements, latitude, longitude);
-          console.log(`Found ${centers.length} evacuation centers`);
-          return centers;
-        }
-
-        console.log('No evacuation centers found in response');
-        return [];
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        if (fetchError.name === 'AbortError') {
-          throw new Error('Request timeout');
-        }
-        throw fetchError;
+      if (!response.ok) {
+        console.error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+
+      if (data && data.elements) {
+        const centers = this.parseOverpassResponse(data.elements, latitude, longitude);
+        console.log(`Found ${centers.length} evacuation centers`);
+        return centers;
+      }
+
+      console.log('No evacuation centers found in response');
+      return [];
     } catch (error) {
-      console.error('Error fetching evacuation centers from Overpass:', error.message);
-      throw error;
+      console.error('Error fetching evacuation centers from Overpass:', error.message || error);
+      // Don't throw, return empty array to allow fallback
+      return [];
     }
   }
 
