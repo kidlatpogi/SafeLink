@@ -8,10 +8,12 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import useLocation from "../Components/useLocation";
+import OverpassService from "../utils/OverpassService";
 import styles from "../Styles/EvacuationCenters.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
 
@@ -23,6 +25,8 @@ const EvacuationCenters = ({ navigation, route }) => {
   const [evacuationCenters, setEvacuationCenters] = useState([]);
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [mapType, setMapType] = useState('standard');
+  const [loadingCenters, setLoadingCenters] = useState(false);
+  const [useRealData, setUseRealData] = useState(true); // Toggle between real and static data
   
   // Get auto-route parameter
   const { autoRoute } = route.params || {};
@@ -91,25 +95,78 @@ const EvacuationCenters = ({ navigation, route }) => {
     }
   ], []);
 
+  // Fetch evacuation centers from Overpass API or use static data
   useEffect(() => {
-    if (location?.latitude && location?.longitude) {
-      // Calculate distances and sort by nearest
-      const centersWithDistance = staticCenters.map(center => ({
-        ...center,
-        distance: calculateDistance(
-          location.latitude,
-          location.longitude,
-          center.coordinates.latitude,
-          center.coordinates.longitude
-        )
-      }));
+    const fetchCenters = async () => {
+      if (!location?.latitude || !location?.longitude) {
+        setEvacuationCenters(staticCenters);
+        return;
+      }
 
-      centersWithDistance.sort((a, b) => a.distance - b.distance);
-      setEvacuationCenters(centersWithDistance);
-    } else {
-      setEvacuationCenters(staticCenters);
-    }
-  }, [location?.latitude, location?.longitude, staticCenters]);
+      if (useRealData) {
+        try {
+          setLoadingCenters(true);
+          console.log('Fetching real evacuation centers from Overpass API...');
+          
+          const realCenters = await OverpassService.fetchEvacuationCenters(
+            location.latitude,
+            location.longitude,
+            5000 // 5km radius
+          );
+
+          if (realCenters.length > 0) {
+            console.log(`Found ${realCenters.length} real evacuation centers`);
+            setEvacuationCenters(realCenters);
+          } else {
+            console.log('No real centers found, using static data');
+            // Fallback to static data with calculated distances
+            const centersWithDistance = staticCenters.map(center => ({
+              ...center,
+              distance: calculateDistance(
+                location.latitude,
+                location.longitude,
+                center.coordinates.latitude,
+                center.coordinates.longitude
+              )
+            }));
+            centersWithDistance.sort((a, b) => a.distance - b.distance);
+            setEvacuationCenters(centersWithDistance);
+          }
+        } catch (error) {
+          console.error('Error fetching real centers, using static data:', error);
+          // Fallback to static data
+          const centersWithDistance = staticCenters.map(center => ({
+            ...center,
+            distance: calculateDistance(
+              location.latitude,
+              location.longitude,
+              center.coordinates.latitude,
+              center.coordinates.longitude
+            )
+          }));
+          centersWithDistance.sort((a, b) => a.distance - b.distance);
+          setEvacuationCenters(centersWithDistance);
+        } finally {
+          setLoadingCenters(false);
+        }
+      } else {
+        // Use static data with calculated distances
+        const centersWithDistance = staticCenters.map(center => ({
+          ...center,
+          distance: calculateDistance(
+            location.latitude,
+            location.longitude,
+            center.coordinates.latitude,
+            center.coordinates.longitude
+          )
+        }));
+        centersWithDistance.sort((a, b) => a.distance - b.distance);
+        setEvacuationCenters(centersWithDistance);
+      }
+    };
+
+    fetchCenters();
+  }, [location?.latitude, location?.longitude, staticCenters, useRealData]);
 
   // Auto-route to nearest center if requested from home screen
   useEffect(() => {
@@ -208,7 +265,27 @@ const EvacuationCenters = ({ navigation, route }) => {
           <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
         </TouchableOpacity>
         <Image source={Logo} style={styles.logo} />
-        <Text style={styles.headerTitle}>Evacuation Centers</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>Evacuation Centers</Text>
+          {loadingCenters && (
+            <Text style={[styles.headerTitle, { fontSize: 10, color: '#FFA000' }]}>
+              Loading real data...
+            </Text>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.dataToggleButton}
+          onPress={() => setUseRealData(!useRealData)}
+        >
+          <Ionicons 
+            name={useRealData ? "globe" : "list"} 
+            size={20} 
+            color="#FFFFFF" 
+          />
+          <Text style={styles.dataToggleText}>
+            {useRealData ? "OSM" : "Static"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Map View */}
@@ -271,6 +348,14 @@ const EvacuationCenters = ({ navigation, route }) => {
           <Ionicons name="navigate" size={24} color="#FFFFFF" />
           <Text style={styles.quickRouteText}>NEAREST CENTER</Text>
         </TouchableOpacity>
+
+        {/* Loading Overlay */}
+        {loadingCenters && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#FF6B6B" />
+            <Text style={styles.loadingText}>Fetching real evacuation centers...</Text>
+          </View>
+        )}
       </View>
 
       {/* Selected Center Info */}
