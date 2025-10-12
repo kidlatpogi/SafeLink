@@ -55,7 +55,7 @@ class DisasterAlertsService {
   // PHIVOLCS Official Tsunami Alerts
   async getTsunamiAlerts() {
     try {
-      console.log('Fetching PHIVOLCS tsunami alerts...');
+      console.log('Fetching tsunami alerts...');
       
       // For now, we'll simulate PHIVOLCS tsunami alert structure
       // In production, you would parse the actual PHIVOLCS tsunami API
@@ -78,7 +78,7 @@ class DisasterAlertsService {
 
       return tsunamiAlerts.filter(alert => this.isWithinPhilippines(alert.coordinates.lat, alert.coordinates.lon));
     } catch (error) {
-      console.error('Error fetching PHIVOLCS tsunami alerts:', error);
+      // Error fetching tsunami alerts - returning empty array
       return [];
     }
   }
@@ -86,7 +86,7 @@ class DisasterAlertsService {
   // Enhanced PHIVOLCS + USGS Earthquake Data
   async getEarthquakeAlerts() {
     try {
-      console.log('Fetching PHIVOLCS earthquake data...');
+      console.log('Fetching earthquake data...');
       
       // Simulate PHIVOLCS earthquake data structure based on actual format
       const phivolcsEarthquakes = [
@@ -155,7 +155,7 @@ class DisasterAlertsService {
   // PAGASA Weather and Typhoon Alerts (Simulated structure)
   async getPAGASAAlerts() {
     try {
-      console.log('Fetching PAGASA weather alerts...');
+      console.log('Fetching weather alerts...');
       
       // Simulate PAGASA alert structure - in production, parse actual PAGASA API
       const pagasaAlerts = [

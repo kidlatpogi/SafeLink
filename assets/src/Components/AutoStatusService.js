@@ -145,7 +145,10 @@ class AutoStatusService {
       if (!lastLocationUpdate) return false;
       
       const now = new Date();
-      const lastUpdate = lastLocationUpdate.toDate();
+      // Handle both Firestore Timestamp and string formats
+      const lastUpdate = lastLocationUpdate.toDate 
+        ? lastLocationUpdate.toDate() 
+        : new Date(lastLocationUpdate);
       const timeDiff = now.getTime() - lastUpdate.getTime();
       
       // Consider inactive if no location update in 4 hours (half of unknown threshold)

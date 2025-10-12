@@ -35,8 +35,8 @@ export default function LocationSettings({ navigation }) {
       const trackingEnabled = await AsyncStorage.getItem('locationTrackingEnabled');
       setIsLocationTrackingEnabled(trackingEnabled === 'true');
 
-      // Check permission status
-      const permissions = await LocationService.requestLocationPermissions();
+      // Check permission status (without requesting to avoid hanging)
+      const permissions = await LocationService.checkLocationPermissions();
       setHasForegroundPermission(permissions.foreground);
       setHasBackgroundPermission(permissions.background);
 
@@ -50,7 +50,10 @@ export default function LocationSettings({ navigation }) {
     }
   };
 
-  const toggleLocationTracking = async (enabled) => {
+  const handleLocationToggle = async (enabled) => {
+    // Immediately update the visual state for better UX
+    setIsLocationTrackingEnabled(enabled);
+    
     if (enabled) {
       // Show detailed consent dialog
       Alert.alert(
@@ -69,7 +72,12 @@ export default function LocationSettings({ navigation }) {
         [
           {
             text: "Cancel",
-            style: "cancel"
+            style: "cancel",
+            onPress: () => {
+              console.log('User cancelled enabling');
+              // Reset the toggle to false since user cancelled
+              setIsLocationTrackingEnabled(false);
+            }
           },
           {
             text: "Enable Tracking",
@@ -78,8 +86,8 @@ export default function LocationSettings({ navigation }) {
               setIsLoading(true);
               try {
                 const success = await LocationService.startSmartTracking();
+                
                 if (success) {
-                  setIsLocationTrackingEnabled(true);
                   await AsyncStorage.setItem('locationTrackingEnabled', 'true');
                   
                   // Refresh permissions and status
@@ -93,6 +101,12 @@ export default function LocationSettings({ navigation }) {
                     "🛡️ Emergency response ready"
                   );
                 } else {
+                  // If failed, reset toggle
+                  setIsLocationTrackingEnabled(false);
+                  
+                  // Also make sure AsyncStorage reflects the failure
+                  await AsyncStorage.setItem('locationTrackingEnabled', 'false');
+                  
                   Alert.alert(
                     "⚠️ Setup Required",
                     "Location permissions are required for emergency services.\n\n" +
@@ -104,6 +118,8 @@ export default function LocationSettings({ navigation }) {
                 }
               } catch (error) {
                 console.error('Failed to enable location tracking:', error);
+                setIsLocationTrackingEnabled(false);
+                await AsyncStorage.setItem('locationTrackingEnabled', 'false');
                 Alert.alert("Error", "Failed to enable location tracking. Please try again.");
               } finally {
                 setIsLoading(false);
@@ -113,6 +129,7 @@ export default function LocationSettings({ navigation }) {
         ]
       );
     } else {
+      console.log('Disabling location tracking...');
       // Disable tracking with confirmation
       Alert.alert(
         "Disable Location Tracking?",
@@ -122,7 +139,12 @@ export default function LocationSettings({ navigation }) {
         [
           {
             text: "Keep Enabled",
-            style: "cancel"
+            style: "cancel",
+            onPress: () => {
+              console.log('User cancelled disabling');
+              // Reset the toggle to true since user cancelled
+              setIsLocationTrackingEnabled(true);
+            }
           },
           {
             text: "Disable",
@@ -132,7 +154,6 @@ export default function LocationSettings({ navigation }) {
               try {
                 const success = await LocationService.stopLocationTracking();
                 if (success) {
-                  setIsLocationTrackingEnabled(false);
                   await AsyncStorage.setItem('locationTrackingEnabled', 'false');
                   
                   Alert.alert(
@@ -142,9 +163,13 @@ export default function LocationSettings({ navigation }) {
                     "📍 You can still manually update location when needed\n" +
                     "🔄 You can re-enable this anytime"
                   );
+                } else {
+                  // If failed to disable, reset toggle to true
+                  setIsLocationTrackingEnabled(true);
                 }
               } catch (error) {
                 console.error('Failed to disable location tracking:', error);
+                setIsLocationTrackingEnabled(true);
                 Alert.alert("Error", "Failed to disable location tracking. Please try again.");
               } finally {
                 setIsLoading(false);
@@ -159,13 +184,12 @@ export default function LocationSettings({ navigation }) {
   const manualLocationUpdate = async () => {
     setIsLoading(true);
     try {
-      Alert.alert("📍 Getting Location...", "Acquiring your precise GPS coordinates...");
-      
       const location = await LocationService.getCurrentLocation();
+      
       await loadLocationSettings(); // Refresh status
       
       Alert.alert(
-        "Location Updated Successfully",
+        "✅ Location Updated Successfully",
         `Your precise location has been saved:\n\n` +
         `Coordinates: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}\n` +
         `Accuracy: ${location.accuracy?.toFixed(0)}m\n` +
@@ -175,8 +199,8 @@ export default function LocationSettings({ navigation }) {
     } catch (error) {
       console.error('Manual location update failed:', error);
       Alert.alert(
-        "❌ Location Update Failed",
-        "Unable to get your current location.\n\n" +
+        "❌ Location Update Failed", 
+        `Error: ${error.message}\n\n` +
         "Please check:\n" +
         "• Location services are enabled\n" +
         "• App has location permissions\n" +
@@ -251,7 +275,7 @@ export default function LocationSettings({ navigation }) {
               </View>
               <Switch
                 value={isLocationTrackingEnabled}
-                onValueChange={toggleLocationTracking}
+                onValueChange={handleLocationToggle}
                 trackColor={{ false: '#d1d5db', true: '#28a745' }}
                 thumbColor="#fff"
                 disabled={isLoading}

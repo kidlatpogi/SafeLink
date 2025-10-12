@@ -158,6 +158,62 @@ const LocationTest = ({ navigation }) => {
         console.log(`❌ Location permissions check failed:`, modeError.message);
       }
 
+      // Test 10: Test emergency location tracking
+      console.log('🧪 Testing emergency location tracking...');
+      try {
+        // First get a location to trigger the emergency location update
+        const currentLoc = await LocationService.getCurrentLocation();
+        
+        // Wait a moment for Firestore to update
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Import needed Firebase functions
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('../firebaseConfig');
+        const { UserContext } = await import('../utils/UserContext');
+        
+        // Get current user ID (this is a simplified approach for testing)
+        // In a real implementation, we'd get this from the UserContext
+        // For now, let's check if we can access the user profile from AsyncStorage
+        const AsyncStorage = await import('@react-native-async-storage/async-storage');
+        const userDataString = await AsyncStorage.default.getItem('userProfile');
+        
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          const userId = userData.uid;
+          
+          // Check if emergency location was written to Firestore
+          const emergencyDoc = await getDoc(doc(db, 'users', userId, 'emergencyLocation', 'current'));
+          
+          if (emergencyDoc.exists()) {
+            const emergencyData = emergencyDoc.data();
+            results.emergencyLocationTracking = true;
+            results.emergencyLocationData = emergencyData;
+            console.log(`✅ Emergency location tracking successful:`, emergencyData);
+          } else {
+            results.emergencyLocationTracking = false;
+            results.emergencyLocationError = 'Emergency location document not found';
+            console.log(`❌ Emergency location document not found`);
+          }
+          
+          // Also check regular profile coordinates for comparison
+          const userDoc = await getDoc(doc(db, 'users', userId));
+          if (userDoc.exists()) {
+            const userProfileData = userDoc.data();
+            results.profileCoordinates = userProfileData.profile?.coordinates;
+            console.log(`📍 Profile coordinates:`, userProfileData.profile?.coordinates);
+          }
+        } else {
+          results.emergencyLocationTracking = false;
+          results.emergencyLocationError = 'User profile not found in AsyncStorage';
+          console.log(`❌ User profile not found for emergency location test`);
+        }
+      } catch (emergencyError) {
+        results.emergencyLocationTracking = false;
+        results.emergencyLocationError = emergencyError.message;
+        console.log(`❌ Emergency location tracking test failed:`, emergencyError.message);
+      }
+
     } catch (error) {
       console.error('❌ Location test failed:', error);
       results.generalError = error.message;
@@ -289,6 +345,25 @@ const LocationTest = ({ navigation }) => {
                 testResults.modeError || 'Mode switching failed'
               }
             />
+
+            <TestResult
+              title="Emergency Location Tracking"
+              status={testResults.emergencyLocationTracking}
+              details={testResults.emergencyLocationTracking ? 
+                `Emergency location stored successfully${testResults.emergencyLocationData ? 
+                  ` - Lat: ${testResults.emergencyLocationData.latitude?.toFixed(6)}, Lng: ${testResults.emergencyLocationData.longitude?.toFixed(6)}` : 
+                  ''}` : 
+                testResults.emergencyLocationError || 'Emergency location tracking failed'
+              }
+            />
+
+            {testResults.profileCoordinates && (
+              <TestResult
+                title="Profile Coordinates (for comparison)"
+                status={true}
+                details={`Profile - Lat: ${testResults.profileCoordinates.latitude?.toFixed(6)}, Lng: ${testResults.profileCoordinates.longitude?.toFixed(6)}`}
+              />
+            )}
 
             {testResults.generalError && (
               <TestResult

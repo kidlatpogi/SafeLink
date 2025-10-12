@@ -8,21 +8,26 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import useLocation from "../Components/useLocation";
+import OverpassService from "../utils/OverpassService";
+import ErrorBoundary from "../Components/ErrorBoundary";
 import styles from "../Styles/EvacuationCenters.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
 
 const { width, height } = Dimensions.get('window');
 
 const EvacuationCenters = ({ navigation, route }) => {
-  const location = useLocation();
+  const { location, loading: locationLoading, error: locationError } = useLocation();
   const mapRef = useRef(null);
   const [evacuationCenters, setEvacuationCenters] = useState([]);
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [mapType, setMapType] = useState('standard');
+  const [loadingCenters, setLoadingCenters] = useState(false);
+  const [useRealData, setUseRealData] = useState(false); // Toggle between real and static data (default: static)
   
   // Get auto-route parameter
   const { autoRoute } = route.params || {};
@@ -91,25 +96,97 @@ const EvacuationCenters = ({ navigation, route }) => {
     }
   ], []);
 
+  // Fetch evacuation centers from Overpass API or use static data
   useEffect(() => {
-    if (location?.latitude && location?.longitude) {
-      // Calculate distances and sort by nearest
-      const centersWithDistance = staticCenters.map(center => ({
-        ...center,
-        distance: calculateDistance(
-          location.latitude,
-          location.longitude,
-          center.coordinates.latitude,
-          center.coordinates.longitude
-        )
-      }));
+    let isMounted = true; // Track if component is mounted
 
-      centersWithDistance.sort((a, b) => a.distance - b.distance);
-      setEvacuationCenters(centersWithDistance);
-    } else {
-      setEvacuationCenters(staticCenters);
-    }
-  }, [location?.latitude, location?.longitude, staticCenters]);
+    const fetchCenters = async () => {
+      if (!location?.latitude || !location?.longitude) {
+        if (isMounted) {
+          setEvacuationCenters(staticCenters);
+        }
+        return;
+      }
+
+      if (useRealData) {
+        try {
+          if (isMounted) {
+            setLoadingCenters(true);
+          }
+          console.log('Fetching real evacuation centers from Overpass API...');
+          
+          const realCenters = await OverpassService.fetchEvacuationCenters(
+            location.latitude,
+            location.longitude,
+            5000 // 5km radius
+          );
+
+          if (!isMounted) return; // Don't update state if unmounted
+
+          if (realCenters.length > 0) {
+            console.log(`Found ${realCenters.length} real evacuation centers`);
+            setEvacuationCenters(realCenters);
+          } else {
+            console.log('No real centers found, using static data');
+            // Fallback to static data with calculated distances
+            const centersWithDistance = staticCenters.map(center => ({
+              ...center,
+              distance: calculateDistance(
+                location.latitude,
+                location.longitude,
+                center.coordinates.latitude,
+                center.coordinates.longitude
+              )
+            }));
+            centersWithDistance.sort((a, b) => a.distance - b.distance);
+            setEvacuationCenters(centersWithDistance);
+          }
+        } catch (error) {
+          if (!isMounted) return; // Don't update state if unmounted
+          
+          console.error('Error fetching real centers, using static data:', error);
+          // Fallback to static data
+          const centersWithDistance = staticCenters.map(center => ({
+            ...center,
+            distance: calculateDistance(
+              location.latitude,
+              location.longitude,
+              center.coordinates.latitude,
+              center.coordinates.longitude
+            )
+          }));
+          centersWithDistance.sort((a, b) => a.distance - b.distance);
+          setEvacuationCenters(centersWithDistance);
+        } finally {
+          if (isMounted) {
+            setLoadingCenters(false);
+          }
+        }
+      } else {
+        // Use static data with calculated distances
+        if (isMounted) {
+          const centersWithDistance = staticCenters.map(center => ({
+            ...center,
+            distance: calculateDistance(
+              location.latitude,
+              location.longitude,
+              center.coordinates.latitude,
+              center.coordinates.longitude
+            )
+          }));
+          centersWithDistance.sort((a, b) => a.distance - b.distance);
+          setEvacuationCenters(centersWithDistance);
+        }
+      }
+    };
+
+    fetchCenters();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, [location?.latitude, location?.longitude, staticCenters, useRealData]);
 
   // Auto-route to nearest center if requested from home screen
   useEffect(() => {
@@ -179,7 +256,7 @@ const EvacuationCenters = ({ navigation, route }) => {
   };
 
   const getInitialRegion = () => {
-    if (location.latitude && location.longitude) {
+    if (location?.latitude && location?.longitude) {
       return {
         latitude: location.latitude,
         longitude: location.longitude,
@@ -208,7 +285,27 @@ const EvacuationCenters = ({ navigation, route }) => {
           <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
         </TouchableOpacity>
         <Image source={Logo} style={styles.logo} />
-        <Text style={styles.headerTitle}>Evacuation Centers</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>Evacuation Centers</Text>
+          {loadingCenters && (
+            <Text style={[styles.headerTitle, { fontSize: 10, color: '#FFA000' }]}>
+              Loading real data...
+            </Text>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.dataToggleButton}
+          onPress={() => setUseRealData(!useRealData)}
+        >
+          <Ionicons 
+            name={useRealData ? "globe" : "list"} 
+            size={20} 
+            color="#FFFFFF" 
+          />
+          <Text style={styles.dataToggleText}>
+            {useRealData ? "OSM" : "Static"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Map View */}
@@ -224,7 +321,7 @@ const EvacuationCenters = ({ navigation, route }) => {
           loadingEnabled={true}
         >
           {/* User location marker */}
-          {location.latitude && location.longitude && (
+          {location?.latitude && location?.longitude && (
             <Marker
               coordinate={{
                 latitude: location.latitude,
@@ -271,6 +368,14 @@ const EvacuationCenters = ({ navigation, route }) => {
           <Ionicons name="navigate" size={24} color="#FFFFFF" />
           <Text style={styles.quickRouteText}>NEAREST CENTER</Text>
         </TouchableOpacity>
+
+        {/* Loading Overlay */}
+        {loadingCenters && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#FF6B6B" />
+            <Text style={styles.loadingText}>Fetching real evacuation centers...</Text>
+          </View>
+        )}
       </View>
 
       {/* Selected Center Info */}
@@ -365,4 +470,11 @@ const EvacuationCenters = ({ navigation, route }) => {
   );
 };
 
-export default EvacuationCenters;
+// Wrap with ErrorBoundary for better error handling
+const EvacuationCentersWithErrorBoundary = (props) => (
+  <ErrorBoundary navigation={props.navigation}>
+    <EvacuationCenters {...props} />
+  </ErrorBoundary>
+);
+
+export default EvacuationCentersWithErrorBoundary;

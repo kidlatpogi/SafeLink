@@ -12,6 +12,7 @@ export default StyleSheet.create({
     paddingBottom: 20,
     paddingTop: 10,
     elevation: 4,
+  },
   permissionsSection: {
     marginBottom: 20,
     paddingTop: 16,
@@ -357,49 +358,6 @@ export default StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 20,
-  },
-  
-  // Permissions Section
-  permissionsSection: {
-    marginBottom: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  permissionsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  permissionsSubtitle: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 16,
-  },
-  permissionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  permissionInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  permissionLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  permissionDescription: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 16,
   },
   
   reviewNotesSection: {

@@ -171,8 +171,10 @@ class NotificationService {
     const currentUser = members.find(member => member.userId === userId);
     
     members.forEach(member => {
-      // Don't notify about own status changes
-      if (member.userId === userId) return;
+      // Don't notify about own status changes (strict comparison)
+      if (member.userId === userId || member.userId === currentUser?.userId) {
+        return;
+      }
       
       // Check if this is a recent status change (within last 5 minutes)
       const lastUpdate = new Date(member.lastUpdate);
@@ -194,8 +196,13 @@ class NotificationService {
     
     switch (member.status?.toLowerCase()) {
       case "i'm safe":
+      case 'safe':
         title = `${statusEmoji} Family Member Safe`;
         body = `${member.name} has reported they are safe`;
+        break;
+      case 'needs help':
+        title = `${statusEmoji} URGENT: Family Member Needs Help`;
+        body = `${member.name} needs assistance - please check on them immediately!`;
         break;
       case 'evacuated':
         title = `${statusEmoji} Family Member Evacuated`;
@@ -214,6 +221,10 @@ class NotificationService {
         body = `${member.name} updated their status to: ${member.status}`;
     }
 
+    // Determine priority - high for urgent statuses
+    const urgentStatuses = ['needs help', 'evacuated'];
+    const isUrgent = urgentStatuses.includes(member.status?.toLowerCase());
+
     await this.scheduleLocalNotification({
       title,
       body,
@@ -223,7 +234,7 @@ class NotificationService {
         memberName: member.name,
         status: member.status
       },
-      priority: member.status?.toLowerCase() === 'evacuated' ? 'high' : 'normal'
+      priority: isUrgent ? 'high' : 'normal'
     });
   }
 
@@ -415,11 +426,11 @@ class NotificationService {
   // Cleanup listeners
   cleanup() {
     if (this.notificationListener) {
-      Notifications.removeNotificationSubscription(this.notificationListener);
+      this.notificationListener.remove();
     }
     
     if (this.responseListener) {
-      Notifications.removeNotificationSubscription(this.responseListener);
+      this.responseListener.remove();
     }
 
     // Clean up family status listeners
