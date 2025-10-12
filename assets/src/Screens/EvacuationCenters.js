@@ -18,7 +18,7 @@ import Logo from "../Images/SafeLink_LOGO.png";
 const { width, height } = Dimensions.get('window');
 
 const EvacuationCenters = ({ navigation, route }) => {
-  const location = useLocation();
+  const { location, loading: locationLoading, error: locationError } = useLocation();
   const mapRef = useRef(null);
   const [evacuationCenters, setEvacuationCenters] = useState([]);
   const [selectedCenter, setSelectedCenter] = useState(null);
