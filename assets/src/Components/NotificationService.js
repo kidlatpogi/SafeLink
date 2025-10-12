@@ -415,11 +415,11 @@ class NotificationService {
   // Cleanup listeners
   cleanup() {
     if (this.notificationListener) {
-      Notifications.removeNotificationSubscription(this.notificationListener);
+      this.notificationListener.remove();
     }
     
     if (this.responseListener) {
-      Notifications.removeNotificationSubscription(this.responseListener);
+      this.responseListener.remove();
     }
 
     // Clean up family status listeners
