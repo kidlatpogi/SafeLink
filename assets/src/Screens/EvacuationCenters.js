@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import useLocation from "../Components/useLocation";
 import OverpassService from "../utils/OverpassService";
+import ErrorBoundary from "../Components/ErrorBoundary";
 import styles from "../Styles/EvacuationCenters.styles";
 import Logo from "../Images/SafeLink_LOGO.png";
 
@@ -469,4 +470,11 @@ const EvacuationCenters = ({ navigation, route }) => {
   );
 };
 
-export default EvacuationCenters;
+// Wrap with ErrorBoundary for better error handling
+const EvacuationCentersWithErrorBoundary = (props) => (
+  <ErrorBoundary navigation={props.navigation}>
+    <EvacuationCenters {...props} />
+  </ErrorBoundary>
+);
+
+export default EvacuationCentersWithErrorBoundary;
