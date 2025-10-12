@@ -179,7 +179,7 @@ const EvacuationCenters = ({ navigation, route }) => {
   };
 
   const getInitialRegion = () => {
-    if (location.latitude && location.longitude) {
+    if (location?.latitude && location?.longitude) {
       return {
         latitude: location.latitude,
         longitude: location.longitude,
@@ -224,7 +224,7 @@ const EvacuationCenters = ({ navigation, route }) => {
           loadingEnabled={true}
         >
           {/* User location marker */}
-          {location.latitude && location.longitude && (
+          {location?.latitude && location?.longitude && (
             <Marker
               coordinate={{
                 latitude: location.latitude,
