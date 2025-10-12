@@ -26,7 +26,7 @@ const EvacuationCenters = ({ navigation, route }) => {
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [mapType, setMapType] = useState('standard');
   const [loadingCenters, setLoadingCenters] = useState(false);
-  const [useRealData, setUseRealData] = useState(true); // Toggle between real and static data
+  const [useRealData, setUseRealData] = useState(false); // Toggle between real and static data (default: static)
   
   // Get auto-route parameter
   const { autoRoute } = route.params || {};
@@ -97,15 +97,21 @@ const EvacuationCenters = ({ navigation, route }) => {
 
   // Fetch evacuation centers from Overpass API or use static data
   useEffect(() => {
+    let isMounted = true; // Track if component is mounted
+
     const fetchCenters = async () => {
       if (!location?.latitude || !location?.longitude) {
-        setEvacuationCenters(staticCenters);
+        if (isMounted) {
+          setEvacuationCenters(staticCenters);
+        }
         return;
       }
 
       if (useRealData) {
         try {
-          setLoadingCenters(true);
+          if (isMounted) {
+            setLoadingCenters(true);
+          }
           console.log('Fetching real evacuation centers from Overpass API...');
           
           const realCenters = await OverpassService.fetchEvacuationCenters(
@@ -113,6 +119,8 @@ const EvacuationCenters = ({ navigation, route }) => {
             location.longitude,
             5000 // 5km radius
           );
+
+          if (!isMounted) return; // Don't update state if unmounted
 
           if (realCenters.length > 0) {
             console.log(`Found ${realCenters.length} real evacuation centers`);
@@ -133,6 +141,8 @@ const EvacuationCenters = ({ navigation, route }) => {
             setEvacuationCenters(centersWithDistance);
           }
         } catch (error) {
+          if (!isMounted) return; // Don't update state if unmounted
+          
           console.error('Error fetching real centers, using static data:', error);
           // Fallback to static data
           const centersWithDistance = staticCenters.map(center => ({
@@ -147,25 +157,34 @@ const EvacuationCenters = ({ navigation, route }) => {
           centersWithDistance.sort((a, b) => a.distance - b.distance);
           setEvacuationCenters(centersWithDistance);
         } finally {
-          setLoadingCenters(false);
+          if (isMounted) {
+            setLoadingCenters(false);
+          }
         }
       } else {
         // Use static data with calculated distances
-        const centersWithDistance = staticCenters.map(center => ({
-          ...center,
-          distance: calculateDistance(
-            location.latitude,
-            location.longitude,
-            center.coordinates.latitude,
-            center.coordinates.longitude
-          )
-        }));
-        centersWithDistance.sort((a, b) => a.distance - b.distance);
-        setEvacuationCenters(centersWithDistance);
+        if (isMounted) {
+          const centersWithDistance = staticCenters.map(center => ({
+            ...center,
+            distance: calculateDistance(
+              location.latitude,
+              location.longitude,
+              center.coordinates.latitude,
+              center.coordinates.longitude
+            )
+          }));
+          centersWithDistance.sort((a, b) => a.distance - b.distance);
+          setEvacuationCenters(centersWithDistance);
+        }
       }
     };
 
     fetchCenters();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, [location?.latitude, location?.longitude, staticCenters, useRealData]);
 
   // Auto-route to nearest center if requested from home screen
