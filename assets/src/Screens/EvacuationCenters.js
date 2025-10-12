@@ -27,7 +27,7 @@ const EvacuationCenters = ({ navigation, route }) => {
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [mapType, setMapType] = useState('standard');
   const [loadingCenters, setLoadingCenters] = useState(false);
-  const [useRealData, setUseRealData] = useState(false); // Toggle between real and static data (default: static)
+  const [useRealData, setUseRealData] = useState(true); // Toggle between real and static data (default: real/location-based)
   
   // Get auto-route parameter
   const { autoRoute } = route.params || {};
@@ -96,39 +96,48 @@ const EvacuationCenters = ({ navigation, route }) => {
     }
   ], []);
 
-  // Fetch evacuation centers from Overpass API or use static data
+  // Fetch evacuation centers based on user's current location
   useEffect(() => {
     let isMounted = true; // Track if component is mounted
 
     const fetchCenters = async () => {
-      if (!location?.latitude || !location?.longitude) {
+      // If no location yet, wait for it
+      if (locationLoading) {
+        console.log('Waiting for location...');
+        return;
+      }
+
+      // If location error, use static data with default location
+      if (locationError || !location?.latitude || !location?.longitude) {
+        console.log('No valid location, using static data with default coordinates');
         if (isMounted) {
           setEvacuationCenters(staticCenters);
         }
         return;
       }
 
+      // Try to fetch real evacuation centers based on user's location
       if (useRealData) {
         try {
           if (isMounted) {
             setLoadingCenters(true);
           }
-          console.log('Fetching real evacuation centers from Overpass API...');
+          console.log(`Fetching evacuation centers near your location: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`);
           
           const realCenters = await OverpassService.fetchEvacuationCenters(
             location.latitude,
             location.longitude,
-            5000 // 5km radius
+            10000 // 10km radius for better coverage
           );
 
           if (!isMounted) return; // Don't update state if unmounted
 
           if (realCenters.length > 0) {
-            console.log(`Found ${realCenters.length} real evacuation centers`);
+            console.log(`Found ${realCenters.length} real evacuation centers near your location`);
             setEvacuationCenters(realCenters);
           } else {
-            console.log('No real centers found, using static data');
-            // Fallback to static data with calculated distances
+            console.log('No real centers found near you, using static data with distances from your location');
+            // Fallback to static data with calculated distances from user's location
             const centersWithDistance = staticCenters.map(center => ({
               ...center,
               distance: calculateDistance(
@@ -144,8 +153,8 @@ const EvacuationCenters = ({ navigation, route }) => {
         } catch (error) {
           if (!isMounted) return; // Don't update state if unmounted
           
-          console.error('Error fetching real centers, using static data:', error);
-          // Fallback to static data
+          console.error('Error fetching centers near your location, using static data:', error);
+          // Fallback to static data with distances from user's location
           const centersWithDistance = staticCenters.map(center => ({
             ...center,
             distance: calculateDistance(
@@ -163,8 +172,9 @@ const EvacuationCenters = ({ navigation, route }) => {
           }
         }
       } else {
-        // Use static data with calculated distances
+        // Use static data but calculate distances from user's location
         if (isMounted) {
+          console.log('Using static data with distances from your location');
           const centersWithDistance = staticCenters.map(center => ({
             ...center,
             distance: calculateDistance(
@@ -186,7 +196,7 @@ const EvacuationCenters = ({ navigation, route }) => {
     return () => {
       isMounted = false;
     };
-  }, [location?.latitude, location?.longitude, staticCenters, useRealData]);
+  }, [location?.latitude, location?.longitude, locationLoading, locationError, staticCenters, useRealData]);
 
   // Auto-route to nearest center if requested from home screen
   useEffect(() => {
@@ -219,17 +229,43 @@ const EvacuationCenters = ({ navigation, route }) => {
     return R * c;
   };
 
-  const openDirections = (center) => {
+  const openDirections = async (center) => {
     console.log('Opening directions to:', center.name);
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${center.coordinates.latitude},${center.coordinates.longitude}&travelmode=driving`;
-    Linking.openURL(url).catch((error) => {
-      console.error('Error opening maps:', error);
-      Alert.alert(
-        "Cannot Open Maps",
-        "Please make sure you have Google Maps installed on your device.",
-        [{ text: "OK" }]
-      );
-    });
+    
+    const { latitude, longitude } = center.coordinates;
+    
+    // Try Google Maps app first (using the app's URL scheme)
+    const googleMapsAppUrl = `google.navigation:q=${latitude},${longitude}&mode=d`;
+    const googleMapsWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
+    
+    try {
+      // Check if Google Maps app can be opened
+      const canOpenApp = await Linking.canOpenURL(googleMapsAppUrl);
+      
+      if (canOpenApp) {
+        console.log('Opening Google Maps app...');
+        await Linking.openURL(googleMapsAppUrl);
+      } else {
+        // Fall back to web version
+        console.log('Google Maps app not available, opening web version...');
+        await Linking.openURL(googleMapsWebUrl);
+      }
+    } catch (error) {
+      console.error('Error opening Google Maps:', error);
+      
+      // Final fallback: try web version directly
+      try {
+        console.log('Attempting web fallback...');
+        await Linking.openURL(googleMapsWebUrl);
+      } catch (webError) {
+        console.error('Error opening web maps:', webError);
+        Alert.alert(
+          "Cannot Open Maps",
+          "Unable to open Google Maps. Please make sure you have Google Maps app installed or a web browser available.",
+          [{ text: "OK" }]
+        );
+      }
+    }
   };
 
   const openNearestRoute = () => {
@@ -287,23 +323,34 @@ const EvacuationCenters = ({ navigation, route }) => {
         <Image source={Logo} style={styles.logo} />
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Evacuation Centers</Text>
-          {loadingCenters && (
+          {locationLoading && (
+            <Text style={[styles.headerTitle, { fontSize: 10, color: '#4285F4' }]}>
+              Getting your location...
+            </Text>
+          )}
+          {loadingCenters && !locationLoading && (
             <Text style={[styles.headerTitle, { fontSize: 10, color: '#FFA000' }]}>
-              Loading real data...
+              Finding centers near you...
+            </Text>
+          )}
+          {!locationLoading && !loadingCenters && useRealData && (
+            <Text style={[styles.headerTitle, { fontSize: 10, color: '#4CAF50' }]}>
+              Showing centers near your location
             </Text>
           )}
         </View>
         <TouchableOpacity
           style={styles.dataToggleButton}
           onPress={() => setUseRealData(!useRealData)}
+          disabled={locationLoading}
         >
           <Ionicons 
-            name={useRealData ? "globe" : "list"} 
+            name={useRealData ? "location" : "list"} 
             size={20} 
             color="#FFFFFF" 
           />
           <Text style={styles.dataToggleText}>
-            {useRealData ? "OSM" : "Static"}
+            {useRealData ? "Live" : "Static"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -370,10 +417,12 @@ const EvacuationCenters = ({ navigation, route }) => {
         </TouchableOpacity>
 
         {/* Loading Overlay */}
-        {loadingCenters && (
+        {(locationLoading || loadingCenters) && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FF6B6B" />
-            <Text style={styles.loadingText}>Fetching real evacuation centers...</Text>
+            <Text style={styles.loadingText}>
+              {locationLoading ? 'Getting your location...' : 'Finding centers near you...'}
+            </Text>
           </View>
         )}
       </View>
@@ -420,7 +469,14 @@ const EvacuationCenters = ({ navigation, route }) => {
 
       {/* Center List */}
       <ScrollView style={styles.centersList} showsVerticalScrollIndicator={false}>
-        <Text style={styles.centersListTitle}>All Evacuation Centers</Text>
+        <Text style={styles.centersListTitle}>
+          {useRealData ? 'Evacuation Centers Near You' : 'Static Evacuation Centers'}
+        </Text>
+        {location?.latitude && location?.longitude && (
+          <Text style={[styles.centersListTitle, { fontSize: 12, color: '#666', marginTop: -5 }]}>
+            📍 Your location: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+          </Text>
+        )}
         {evacuationCenters.map((center) => (
           <TouchableOpacity
             key={center.id}
