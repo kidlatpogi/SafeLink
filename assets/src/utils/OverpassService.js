@@ -1,5 +1,4 @@
 // OverpassService.js - Fetch real evacuation centers using Overpass API
-import axios from 'axios';
 
 class OverpassService {
   constructor() {
@@ -45,24 +44,44 @@ class OverpassService {
       
       const query = this.buildEvacuationCentersQuery(latitude, longitude, radius);
       
-      const response = await axios.post(
-        this.overpassUrl,
-        query,
-        {
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      try {
+        const response = await fetch(this.overpassUrl, {
+          method: 'POST',
           headers: {
             'Content-Type': 'text/plain',
+            'Accept': 'application/json',
           },
-          timeout: this.timeout,
+          body: query,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      );
 
-      if (response.data && response.data.elements) {
-        const centers = this.parseOverpassResponse(response.data.elements, latitude, longitude);
-        console.log(`Found ${centers.length} evacuation centers`);
-        return centers;
+        const data = await response.json();
+
+        if (data && data.elements) {
+          const centers = this.parseOverpassResponse(data.elements, latitude, longitude);
+          console.log(`Found ${centers.length} evacuation centers`);
+          return centers;
+        }
+
+        console.log('No evacuation centers found in response');
+        return [];
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timeout');
+        }
+        throw fetchError;
       }
-
-      return [];
     } catch (error) {
       console.error('Error fetching evacuation centers from Overpass:', error.message);
       throw error;
