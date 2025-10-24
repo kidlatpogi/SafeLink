@@ -289,6 +289,53 @@ export default function NotificationSettings({ navigation }) {
             </View>
           </View>
         </View>
+
+        {/* Test Notification Section */}
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionTitle}>Test Notifications</Text>
+          <View style={styles.testSection}>
+            <TouchableOpacity
+              style={styles.testButton}
+              onPress={handleTestNotification}
+              disabled={loading}
+            >
+              <Ionicons name="notifications" size={20} color="#FFFFFF" />
+              <Text style={styles.testButtonText}>
+                {loading ? 'Sending...' : 'Send Test Notification'}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.testDescription}>
+              Tap to send a test notification to verify your notification setup is working correctly.
+            </Text>
+          </View>
+        </View>
+
+        {/* Debug Information */}
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionTitle}>Debug Information</Text>
+          <TouchableOpacity
+            style={styles.debugButton}
+            onPress={async () => {
+              try {
+                const status = await getNotificationStatus();
+                Alert.alert(
+                  'Notification Status',
+                  `Platform: ${status.platform}\n` +
+                  `Is Device: ${status.isDevice}\n` +
+                  `Permission: ${status.hasPermission ? 'Granted' : 'Denied'}\n` +
+                  `Channel: ${status.channelStatus}\n` +
+                  `Push Token: ${status.pushToken ? 'Yes' : 'No'}` +
+                  (status.error ? `\nError: ${status.error}` : '')
+                );
+              } catch (error) {
+                Alert.alert('Error', 'Failed to get notification status');
+              }
+            }}
+          >
+            <Ionicons name="bug" size={20} color="#666" />
+            <Text style={styles.debugButtonText}>Show Debug Info</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Hamburger Menu */}
