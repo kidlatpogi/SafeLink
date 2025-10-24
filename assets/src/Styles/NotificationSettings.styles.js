@@ -192,4 +192,55 @@ export default StyleSheet.create({
     color: "#795548",
     lineHeight: 20,
   },
+
+  // Test section
+  testSection: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  testButton: {
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  testButtonText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  testDescription: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+
+  // Debug section
+  debugButton: {
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#DDD",
+  },
+  debugButtonText: {
+    color: "#666",
+    fontWeight: "600",
+    marginLeft: 8,
+  },
 });

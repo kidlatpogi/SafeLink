@@ -95,21 +95,26 @@ export const NotificationProvider = ({ children }) => {
 
   // Send test notification
   const sendTestNotification = async () => {
-    await NotificationService.scheduleLocalNotification({
+    console.log('🧪 Sending test notification...');
+    const notificationId = await NotificationService.scheduleLocalNotification({
       title: '🧪 SafeLink Test Notification',
-      body: 'Your notifications are working correctly!',
-      data: { type: 'test' },
-      priority: 'normal'
+      body: 'Your notifications are working correctly! This confirms Android notifications are functioning properly.',
+      data: { type: 'test', timestamp: new Date().toISOString() },
+      priority: 'high'
     });
+
+    if (notificationId) {
+      console.log('✅ Test notification sent successfully');
+    } else {
+      console.log('❌ Test notification failed');
+    }
+
+    return notificationId;
   };
 
   // Get notification status
-  const getNotificationStatus = () => {
-    return {
-      isInitialized,
-      hasPermission: !!NotificationService.expoPushToken,
-      settings: notificationSettings
-    };
+  const getNotificationStatus = async () => {
+    return await NotificationService.getNotificationStatus();
   };
 
   const value = {
