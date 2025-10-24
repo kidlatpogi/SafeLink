@@ -5,11 +5,14 @@ import {
   KeyboardAvoidingView,
   Alert,
   Platform,
+  TouchableOpacity,
+  Text
 } from "react-native";
 import { auth, db } from '../firebaseConfig';
 import { updateProfile } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import styles from '../Styles/Create_Account.styles'; // Reusing styles
 
@@ -21,6 +24,7 @@ import AppHeader from '../Components/AppHeader';
 import BirthdatePicker from '../Components/BirthdatePicker';
 import InfoBox from '../Components/InfoBox';
 import UserFormActions from '../Components/UserFormActions';
+import ChangePassword from '../Components/ChangePassword';
 
 export default function User_Form({ navigation, route }) {
   const [firstName, setFirstName] = useState("");
@@ -31,6 +35,7 @@ export default function User_Form({ navigation, route }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   
   // Administrative location state
   const [administrativeLocation, setAdministrativeLocation] = useState({
@@ -289,6 +294,35 @@ export default function User_Form({ navigation, route }) {
               initialBarangay={administrativeLocation.barangay}
             />
 
+            {/* Change Password Button - Only in Edit Mode */}
+            {isEditMode && (
+              <View style={{ marginBottom: 20 }}>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#f8f9fa',
+                    borderWidth: 1,
+                    borderColor: '#dee2e6',
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => setShowChangePassword(true)}
+                >
+                  <Ionicons name="key-outline" size={20} color="#FF6B6B" style={{ marginRight: 8 }} />
+                  <Text style={{
+                    color: '#FF6B6B',
+                    fontSize: 16,
+                    fontWeight: '600',
+                  }}>
+                    Change Password
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             <InfoBox />
 
             <UserFormActions 
@@ -302,6 +336,13 @@ export default function User_Form({ navigation, route }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Change Password Modal */}
+      <ChangePassword
+        visible={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+        styles={styles}
+      />
     </View>
   );
 }
